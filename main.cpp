@@ -1,4 +1,7 @@
 #include "src/InputReader.h"
+#include "src/Mesh.h"
+#include "src/PostProcessing.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -22,8 +25,15 @@ int main(int argc, char* argv[]) {
     InputReader reader(inputFileName); 
     if (reader.readFile()) {
         reader.printMaterialProperties();
-        return 0;
     } else {
         return 1;
     }
+
+    Mesh mesh(reader);
+    mesh.getHexahedralElements();
+
+    PostProcessing psp(reader,mesh);
+    //psp.convertHexMshToVtk();
+
+    return 0;
 }
