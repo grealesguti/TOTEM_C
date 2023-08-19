@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+	  {
+		"type": "cppbuild",
+		"label": "C/C++: g++.exe build all files in src",
+		"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+		"args": [
+			"-fdiagnostics-color=always",
+			"-g3",
+			"-Wall",
+			"${workspaceFolder}\\*.cpp",
+			"${workspaceFolder}\\src\\*.cpp",
+			"${workspaceFolder}\\src\\*.h",
+			"-IC:\\msys64\\mingw64\\include\\vtk",
+			"-LC:\\msys64\\mingw64\\lib",
+			"-lvtksys",
+			"-lvtkCommonCore",
+			"-lvtkIOXML",
+			"-lgmsh",
+			"-o",
+			"${workspaceFolder}\\TOTEM.exe"
+		  ],
+		"options": {
+		  "cwd": "${workspaceFolder}"
+		},
+		"problemMatcher": [
+		  "$gcc"
+		],
+		"group": {
+		  "kind": "build",
+		  "isDefault": true
+		},
+		"detail": "compiler: C:\\msys64\\mingw64\\bin\\g++.exe",
+		"dependsOn": [
+		  "copyLibrary"
+		]
+	  },
+	]
+  }
+  

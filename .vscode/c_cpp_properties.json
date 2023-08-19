@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Archive\\Programming\\C++\\gmsh-git-source\\build\\",
+                "C:/msys64/mingw64/include/vtk"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "cppStandard": "gnu++23",
+            "cStandard": "c23"
+        }
+    ],
+    "version": 4
+}

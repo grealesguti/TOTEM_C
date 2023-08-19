@@ -1,0 +1,27 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh
+mesh_file mesh.msh
+
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... ##
+material Copper
+YoungsModulus 1.0e6
+PoissonsRatio 0.3
+##
+material TECp
+YoungsModulus 2.0e6
+PoissonsRatio 0.6
+##
+material TECm
+YoungsModulus 3.0e6
+PoissonsRatio 0.9
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage Vf 0.05
+bc Voltage V0 0.0
+bc Temperature Tsink 275
+bc heat_x Heat 1000 
+
+## Output Options
+## output <data> <path/outputname>
+output T dataT.vtk
