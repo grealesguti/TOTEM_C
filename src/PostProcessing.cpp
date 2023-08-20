@@ -1,4 +1,12 @@
 #include "PostProcessing.h"
+/*
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkHexahedron.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkSmartPointer.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+*/
 
 PostProcessing::PostProcessing(const InputReader& inputReader, const Mesh& meshinput)
     : inputReader_(inputReader), meshinput_(meshinput) {
@@ -9,8 +17,9 @@ void PostProcessing::convertHexMshToVtk() {
     // Initialize Gmsh
     gmsh::initialize();
     gmsh::open(inputReader_.getMeshFileName());
- /*
+
     // Create VTK objects
+         /*
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkHexahedron> hexahedron = vtkSmartPointer<vtkHexahedron>::New();
@@ -50,4 +59,46 @@ void PostProcessing::convertHexMshToVtk() {
     writer->Write();*/
 
     gmsh::finalize();
+}
+
+
+
+void PostProcessing::WriteUnstructuredMeshToVTK() {
+    std::ofstream vtkFile("test.vtk");
+
+    if (!vtkFile.is_open()) {
+        std::cerr << "Error: Unable to open VTK file for writing." << std::endl;
+        return;
+    }
+
+    // Write VTK header
+    vtkFile << "# vtk DataFile Version 3.0" << std::endl;
+    vtkFile << "Unstructured Mesh" << std::endl;
+    vtkFile << "ASCII" << std::endl;
+    vtkFile << "DATASET UNSTRUCTURED_GRID" << std::endl;
+
+    // Write node coordinates
+    vtkFile << "POINTS " <<  meshinput_.getNumAllNodes() << " double" << std::endl;
+    for (int i = 0; i <  meshinput_.getNumAllNodes(); ++i) {
+        vtkFile <<  meshinput_.getCoordi(i * 3) << " " <<  meshinput_.getCoordi(i * 3 + 1) << " " <<  meshinput_.getCoordi(i * 3 + 2) << std::endl;
+    }
+
+
+    vtkFile << "CELLS " << meshinput_.getNumElements() << " " << meshinput_.getNumElements()*(8+1) << std::endl;
+    for (int i = 0; i < meshinput_.getNumElements(); ++i) {
+        vtkFile << 8;
+        for (int j = 0; j < 8; ++j) {
+            vtkFile << " " << (meshinput_.getelementNodeTagi(i*8+j)-1); //Starts from index 0 in VTK and 1 in MSH
+        }
+        vtkFile << std::endl;
+    }
+
+    // Write cell types (assuming all elements are hexahedra)
+    vtkFile << "CELL_TYPES " << meshinput_.getNumElements() << std::endl;
+    for (int i = 0; i < meshinput_.getNumElements(); ++i) {
+        vtkFile << "12 "; // VTK_HEXAHEDRON code
+    }
+    vtkFile << std::endl;
+
+    vtkFile.close();
 }

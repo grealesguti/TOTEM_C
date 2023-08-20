@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     mesh.getHexahedralElements();
 
     PostProcessing psp(reader,mesh);
-    //psp.convertHexMshToVtk();
+    psp.WriteUnstructuredMeshToVTK();
 
     return 0;
 }

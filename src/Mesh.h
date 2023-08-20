@@ -1,10 +1,13 @@
 #ifndef MESH_H
 #define MESH_H
 
+
 #include "InputReader.h"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
 #include <vector>
-
+#include <iostream>
+#include <fstream>
+#include <vector>
 
 class Mesh {
 public:
@@ -38,6 +41,9 @@ public:
     }
     const int getelementNodeTagi(int i) const {
         return elementNodeTags[i];
+    }
+    const int getNodeTagi(int i) const {
+        return nodeTags[i];
     }
 
 private:

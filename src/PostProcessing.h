@@ -6,14 +6,6 @@
 
 #include <iostream>
 #include <vector>
-#include "vtkPoints.h"
-#include "vtkCellArray.h"
-#include "vtkHexahedron.h"
-#include "vtkUnstructuredGrid.h"
-#include "vtkSmartPointer.h"
-#include "vtkXMLUnstructuredGridWriter.h"
-
-
 
 class PostProcessing {
 public:
@@ -21,6 +13,7 @@ public:
     void getHexahedralElements();
     //void getHexahedral20Elements();
     void convertHexMshToVtk();
+    void WriteUnstructuredMeshToVTK();
 
 private:
     const InputReader& inputReader_;
