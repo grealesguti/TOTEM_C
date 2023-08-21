@@ -1,6 +1,7 @@
 #include "src/InputReader.h"
 #include "src/Mesh.h"
 #include "src/PostProcessing.h"
+#include "src/BCInit.h"
 
 #include <iostream>
 #include <fstream>
@@ -32,8 +33,13 @@ int main(int argc, char* argv[]) {
     Mesh mesh(reader);
     mesh.getHexahedralElements();
 
+    BCInit BC(reader,mesh);
+    BC.boundaryConditions();
+
     PostProcessing psp(reader,mesh);
     psp.WriteUnstructuredMeshToVTK();
+
+
 
     return 0;
 }
