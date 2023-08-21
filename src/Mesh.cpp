@@ -190,6 +190,12 @@ void Mesh::finalizeGmsh() {
     gmsh::finalize();
 }
 
+void Mesh::reinitializeGmsh() {
+    // Initialize Gmsh
+    gmsh::initialize();
+    gmsh::open(inputReader_.getMeshFileName());
+}
+
 void Mesh::setFixedof(int dof) {
             freedofs_[dof] = 0;
 }

@@ -16,6 +16,9 @@
 			"-lgmsh",
 			//"-lvtksys",
 			//"-lvtkIOXML",
+			"-larmadillo",
+			"-llapack",
+			"-lopenblas",
 			"-o",
 			"${workspaceFolder}\\TOTEM.exe"
 		  ],

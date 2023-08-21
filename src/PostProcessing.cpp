@@ -61,8 +61,6 @@ void PostProcessing::convertHexMshToVtk() {
     gmsh::finalize();
 }
 
-
-
 void PostProcessing::WriteUnstructuredMeshToVTK() {
     std::ofstream vtkFile("test.vtk");
 

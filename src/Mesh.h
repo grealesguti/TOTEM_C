@@ -16,6 +16,7 @@ public:
 
     // Finalize Gmsh method
     void finalizeGmsh();
+    void reinitializeGmsh();
 
     // Get Physical entities
     std::vector<long long unsigned int> getNodesForPhysicalGroup(const std::string& desiredGroupName);
@@ -23,7 +24,6 @@ public:
 
     // Setters
     void setFixedof(int dof); 
-
 
     // Getter methods for private variables
     int getNumElements() const {        return numelem;    }
