@@ -3,11 +3,12 @@
 Mesh::Mesh(const InputReader& inputReader)
     : inputReader_(inputReader) {
     // You may want to initialize other member variables here
+    gmsh::initialize();
+    gmsh::open(inputReader_.getMeshFileName());
+
 }
 
 void Mesh::getHexahedralElements() {
-    gmsh::initialize();
-    gmsh::open(inputReader_.getMeshFileName());
 
     // get element type for Hexahedron of order 1
     int order=1;
@@ -95,14 +96,10 @@ void Mesh::getHexahedralElements() {
     }
 
 
-
-    gmsh::finalize();
 }
 
 
 std::vector<long long unsigned int> Mesh::getNodesForPhysicalGroup(const std::string& desiredGroupName) {
-    gmsh::initialize();
-    gmsh::open(inputReader_.getMeshFileName());
     int matchedDimension;
 
     std::vector<std::pair<int, int>> dimTags;
@@ -139,15 +136,11 @@ std::vector<long long unsigned int> Mesh::getNodesForPhysicalGroup(const std::st
     } else {
         std::cout << "Warning!!! No matching physical group found with name: " << desiredGroupName << std::endl;
     }
-
-        gmsh::finalize();
-
         return nodeTagsgroup; // Return an empty vector to indicate no match
 }
 
 std::pair<size_t, std::vector<int>> Mesh::getElementsForPhysicalGroup(const std::string& desiredGroupName) {
-    gmsh::initialize();
-    gmsh::open(inputReader_.getMeshFileName());
+
     int matchedDimension;
 
     std::vector<std::pair<int, int>> dimTags;
@@ -188,10 +181,13 @@ std::pair<size_t, std::vector<int>> Mesh::getElementsForPhysicalGroup(const std:
     } else {
         std::cout << "No matching physical group found with name: " << desiredGroupName << std::endl;
 
-        gmsh::finalize();
-
         return std::make_pair(0, elementTags); // Return an empty vector and size 0 to indicate no match
     }
+}
+
+void Mesh::finalizeGmsh() {
+    // Finalize Gmsh and clean up
+    gmsh::finalize();
 }
 
 void Mesh::setFixedof(int dof) {

@@ -14,12 +14,16 @@ public:
     Mesh(const InputReader& inputReader);
     void getHexahedralElements();
 
+    // Finalize Gmsh method
+    void finalizeGmsh();
+
     // Get Physical entities
     std::vector<long long unsigned int> getNodesForPhysicalGroup(const std::string& desiredGroupName);
     std::pair<size_t, std::vector<int>> getElementsForPhysicalGroup(const std::string& desiredGroupName);
 
     // Setters
     void setFixedof(int dof); 
+
 
     // Getter methods for private variables
     int getNumElements() const {        return numelem;    }
