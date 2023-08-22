@@ -6,6 +6,8 @@ Utils::Utils() {
     // Initialize a member variable (if needed)
 }
 
+
+
 void getGaussWeightsAndPoints(int order, mat& weights, mat& gaussPoints) {
     // Check if the order is valid
     if (order < 1 || order > 14) {

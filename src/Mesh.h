@@ -20,10 +20,13 @@ public:
 
     // Get Physical entities
     std::vector<long long unsigned int> getNodesForPhysicalGroup(const std::string& desiredGroupName);
-    std::pair<size_t, std::vector<int>> getElementsForPhysicalGroup(const std::string& desiredGroupName);
+    std::vector<std::size_t> getElementsForPhysicalGroup(const std::string& desiredGroupName);
 
     // Setters
     void setFixedof(int dof); 
+    std::vector<int> printElementTypesInPhysicalGroupByName(std::string desiredGroupName);
+    void InitMeshEntityElements();
+
 
     // Getter methods for private variables
     int getNumElements() const {        return numelem;    }

@@ -9,9 +9,6 @@
 #include <vector>
 #include "gmsh.h"
 
-
-
-
 class InputReader {
 public:
     InputReader(const std::string& filename);
@@ -23,11 +20,12 @@ public:
 
     // Setter methods //
     void setMeshFileName(const std::string& meshFileName);
+    void setMeshEntityName(const std::string& MeshEntityName);
 
     // Getter methods //
-    const std::string& getMeshFileName() const {
-        return meshFileName_;
-    }
+    const std::string& getMeshFileName() const {return meshFileName_;}
+    const std::string& getMeshEntityName() const {return MeshEntityName_;}
+
     const std::map<int, std::map<std::string, double>>& getAllMaterialProperties() const;
     const std::map<std::pair<std::string, std::string>, double>& getBoundaryConditions() const {
         return boundaryConditions_;
@@ -38,7 +36,7 @@ public:
     bool readGmshMesh();
 private:
     std::string filename_;
-    std::string meshFileName_; // Variable to store the mesh file name
+    std::string meshFileName_,MeshEntityName_; // Variable to store the mesh file name
     std::map<std::string, std::map<std::string, double>> MaterialProperties_;
     std::map<std::pair<std::string, std::string>, double> boundaryConditions_;
 

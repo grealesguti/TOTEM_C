@@ -17,15 +17,22 @@ bool InputReader::readFile() {
         std::string keyword;
         iss >> keyword;
 
-        // Initialize default values
         if (keyword == "mesh_file") {
+            // Read mesh file and associated entity name
             std::string meshFileName;
-            iss >> meshFileName;
+            std::string entityName;
+            
+            iss >> meshFileName >> entityName;
+            
             if (!iss) {
-                std::cerr << "Warning: Invalid mesh file name." << std::endl;
+                std::cerr << "Warning: Invalid mesh file and entity name." << std::endl;
                 continue;
+            }else{
+                std::cout << "New Mesh File and Mesh entity:"<<meshFileName<<" "<< entityName<< std::endl;
             }
-            setMeshFileName(meshFileName); // Store the mesh file name in the class
+            
+            setMeshFileName(meshFileName);       // Store the mesh file name in the class
+            setMeshEntityName(entityName);           // Set the full mesh entity name
             // MATERIAL PROPERTIES
         }else if (keyword == "material") {
             std::string volumeName;
@@ -105,6 +112,11 @@ void InputReader::printBoundaryConditions() const {
 void InputReader::setMeshFileName(const std::string& meshFileName) {
     meshFileName_ = meshFileName;
     std::cout << "New mesh file name set: " << meshFileName_ << std::endl;
+}
+
+void InputReader::setMeshEntityName(const std::string& MeshEntityName) {
+    MeshEntityName_ = MeshEntityName;
+    std::cout << "New mesh group name set: " << MeshEntityName_ << std::endl;
 }
 
 
