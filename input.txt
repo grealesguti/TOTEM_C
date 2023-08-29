@@ -1,7 +1,7 @@
 # Input File for FEM Simulation with Mesh Reference
 
-## Mesh
-mesh_file TECv4.msh
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+mesh_file TECv4.msh All
 
 ## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... ##
 material Copper

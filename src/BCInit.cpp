@@ -1,7 +1,8 @@
 #include "BCInit.h"
+using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
-    : inputReader_(inputReader), mesh_(mesh) {
+    : inputReader_(inputReader), mesh_(mesh), elements_() {
     // Get the number of nodes from the mesh
     int numNodes = mesh_.getNumAllNodes();
 
@@ -56,7 +57,51 @@ void BCInit::boundaryConditions() {
                         std::cerr << "Node index out of bounds: " << node << std::endl;
                     }
             }
-    }
+        }else if (boundaryName == "heat_x") {
+            // Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
+            const auto& nodes = mesh_.getNodesForPhysicalGroup(surfaceName);
+            // Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
+            for (unsigned long long node : nodes) {
+                    // Make sure node is within the bounds of initialdofs_
+                    if (node*2+1 < initialdofs_.size()) {
+                        initialdofs_[node*2+1] = value;
+                        mesh_.setFixedof(node*2+1);
+                    } else {
+                        // Handle the case where the node index is out of bounds.
+                        // This could be an error condition depending on your application.
+                        std::cerr << "Node index out of bounds: " << node << std::endl;
+                    }
+            }
     }
 
+}
+}
+
+
+mat BCInit::CteSurfBC(const mat& natcoords,const mat& coords, double heatvalue) {
+    // Define variables
+    vec shapeFunctions(4);             // Shape functions
+    mat shapeFunctionDerivatives(4, 2); // Shape function derivatives
+    mat JM(2, 2);                       // Jacobian matrix
+    mat F_q(4, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
+    double xi = natcoords(0, 0);  // Extracts the first element (a)
+    double eta = natcoords(1, 0); // Extracts the second element (b)
+    // Calculate shape functions and their derivatives
+    elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta, shapeFunctions);
+    elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
+
+    // Calculate Jacobian matrix JM
+    for (uword i = 0; i < 2; ++i) {
+        for (uword j = 0; j < 2; ++j) {
+            JM(i, j) = dot(shapeFunctionDerivatives.col(i), coords.row(j));
+        }
+    }
+
+    // Calculate the determinant of the Jacobian
+    double detJ = det(JM);
+    // Calculate F_q (heat flow) using your equations
+    F_q = detJ * (shapeFunctions * heatvalue);
+
+    // Return the heat flow as a 3x1 Armadillo matrix
+    return F_q;
 }

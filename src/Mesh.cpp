@@ -1,4 +1,5 @@
 #include "Mesh.h"
+using namespace arma;
 
 Mesh::Mesh(const InputReader& inputReader)
     : inputReader_(inputReader) {
@@ -380,3 +381,46 @@ void Mesh::InitMeshEntityElements() {
     }
 
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+    // Method to get coordinates for a list of nodeTags
+    mat Mesh::getCoordinates(const std::vector<int>& nodeTags) {
+        // Determine the number of coordinates per node (assuming it's 3)
+        const int numCoordinatesPerNode = 3;
+
+        // Determine the number of nodes to retrieve
+        const int numNodesToRetrieve = nodeTags.size();
+
+        // Initialize the arma::mat to store the coordinates
+        arma::mat coordinates(numCoordinatesPerNode, numNodesToRetrieve);
+
+        // Populate the coordinates matrix with the requested nodes' coordinates
+        for (int i = 0; i < numNodesToRetrieve; ++i) {
+            int nodeTag = nodeTags[i];
+            if (nodeTag >= 0 && nodeTag < coord.size() / numCoordinatesPerNode) {
+                // Calculate the starting index of the node's coordinates in the coord vector
+                int startIndex = nodeTag * numCoordinatesPerNode;
+
+                // Extract the coordinates for the node and store them in the arma::mat
+                for (int j = 0; j < numCoordinatesPerNode; ++j) {
+                    coordinates(j, i) = coord[startIndex + j];
+                }
+            } else {
+                // Handle invalid nodeTag, for example, by setting the coordinates to NaN
+                coordinates.col(i).fill(arma::datum::nan);
+            }
+        }
+
+        return coordinates;
+    }
+
+
+    void Mesh::getElementInfo(int elementTag, std::vector<int> & nodeTags_el) {
+        int dim, entityTag, elementType;
+        std::vector<std::size_t> nodeTags_size_t;
+        gmsh::model::mesh::getElement(elementTag, elementType, nodeTags_size_t, dim, entityTag);
+
+        // Convert the std::vector<std::size_t> to std::vector<int>
+        nodeTags_el.assign(nodeTags_size_t.begin(), nodeTags_size_t.end());
+    }

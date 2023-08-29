@@ -8,6 +8,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <armadillo>
+
 
 class Mesh {
 public:
@@ -38,6 +40,9 @@ public:
     const double getCoordi(int i) const {        return coord[i];    }
     const int getelementNodeTagi(int i) const {        return elementNodeTags[i];    }
     const int getNodeTagi(int i) const {        return nodeTags[i];    }
+    arma::mat getCoordinates(const std::vector<int>& nodeTags);
+    void getElementInfo(int elementTag, std::vector<int> & nodeTags_el);
+
 
 private:
     const InputReader& inputReader_;
