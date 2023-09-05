@@ -26,7 +26,9 @@ public:
     const std::string& getMeshFileName() const {return meshFileName_;}
     const std::string& getMeshEntityName() const {return MeshEntityName_;}
 
-    const std::map<int, std::map<std::string, double>>& getAllMaterialProperties() const;
+    const std::map<std::string, std::map<std::string, double>> getAllMaterialProperties() const {
+        return MaterialProperties_;
+    }
     const std::map<std::pair<std::string, std::string>, double>& getBoundaryConditions() const {
         return boundaryConditions_;
     }
@@ -39,7 +41,8 @@ private:
     std::string meshFileName_,MeshEntityName_; // Variable to store the mesh file name
     std::map<std::string, std::map<std::string, double>> MaterialProperties_;
     std::map<std::pair<std::string, std::string>, double> boundaryConditions_;
-
+    // Initialize a vector to store material indices for elements
+    std::vector<std::size_t> elementMaterialIndices;
 };
 
 #endif // INPUTREADER_H

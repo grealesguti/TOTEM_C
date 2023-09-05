@@ -42,7 +42,9 @@ public:
     const int getNodeTagi(int i) const {        return nodeTags[i];    }
     arma::mat getCoordinates(const std::vector<int>& nodeTags);
     void getElementInfo(int elementTag, std::vector<int> & nodeTags_el);
-
+    void applyElementsMaterials();
+    // Declaration for getMaterialPropertyForElement function
+    double getMaterialPropertyForElement(std::size_t elementIndex, const std::string& propertyName) const;
 
 private:
     const InputReader& inputReader_;
@@ -50,7 +52,9 @@ private:
     int numPointsInHex = 8; // Get the number of points in the hexahedron i from the MSH file
     int numelem, numnodes, numallnodes;
     std::vector<double> coord;
-    std::vector<int> freedofs_;
+    std::vector<int> freedofs_, element_materials;
+    std::map<std::string, std::size_t> materialIndices;
+
 
 };
 

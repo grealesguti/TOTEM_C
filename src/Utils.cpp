@@ -118,7 +118,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
     coordinates_tr=TransformCoordinates(coordinates);
 
     // Get the Gauss weights and points for the specified order.
-    getGaussWeightsAndPoints(order, weights, gaussPoints);
+    Utils::getGaussWeightsAndPoints(order, weights, gaussPoints);
 
     if (weights.is_empty() || gaussPoints.is_empty()) {
         std::cerr << "Invalid order for Gauss integration." << std::endl;

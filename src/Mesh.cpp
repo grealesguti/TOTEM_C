@@ -77,6 +77,7 @@ void Mesh::getHexahedralElements() {
     } else {
         // Output the number of nodes and elements
         numelem= elementTags.size();
+        element_materials.assign(numelem, 0);
         numnodes= nodeTagselem.size();
 
         int numelementNodeTags =elementNodeTags.size();
@@ -303,10 +304,14 @@ std::vector<int> Mesh::printElementTypesInPhysicalGroupByName(std::string desire
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 void Mesh::InitMeshEntityElements() {
+
+    // Resize the element_materials vector to the size of numelem
+    element_materials.resize(numelem);
+
     // Get the desired entity name from InputReader
     std::string desiredEntityName = inputReader_.getMeshEntityName();    
     std::cout << "Looking for element types in  "<< desiredEntityName<< std::endl;
-
+    
     int matchedDimension = -1;
     std::vector<std::pair<int, int>> dimTags;
 
@@ -424,3 +429,88 @@ void Mesh::InitMeshEntityElements() {
         // Convert the std::vector<std::size_t> to std::vector<int>
         nodeTags_el.assign(nodeTags_size_t.begin(), nodeTags_size_t.end());
     }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+void Mesh::applyElementsMaterials() {
+    // Get all material properties from the InputReader
+    std::map<std::string, std::map<std::string, double>> materialProperties = inputReader_.getAllMaterialProperties();
+    std::size_t currentIndex = 1; // Start indexing from 1
+
+    // Assign indices to unique material names
+    for (const auto& entry : materialProperties) {
+        const std::string& materialName = entry.first;
+
+        // Check if the material name is not already assigned an index
+        if (materialIndices.find(materialName) == materialIndices.end()) {
+            materialIndices[materialName] = currentIndex;
+            currentIndex++;
+        }
+    }
+
+    // Initialize the element_materials vector with zeros
+    element_materials.assign(numelem, 0);
+
+    // Iterate through the material names and assign material indices to elements
+    for (const auto& entry : materialProperties) {
+        const std::string& materialName = entry.first;
+        const std::vector<std::size_t> elementsForMaterial = getElementsForPhysicalGroup(materialName);
+
+        // Retrieve the material index for this material name
+        std::size_t materialIndex = materialIndices[materialName];
+
+        // Assign the material index to the corresponding elements
+        for (std::size_t j : elementsForMaterial) {
+            if (j < numelem) {
+                element_materials[j] = static_cast<int>(materialIndex);
+            } else {
+                std::cerr << "Warning: Element index out of range." << std::endl;
+            }
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+double Mesh::getMaterialPropertyForElement(std::size_t elementIndex, const std::string& propertyName) const {
+    double propertyValue = 0.0; // Initialize to a default value
+
+    // Check if the element index is within the bounds of element_materials
+    if (elementIndex < numelem) {
+        // Retrieve the material index for the given element
+        int materialIndex = element_materials[elementIndex];
+
+        // Find the corresponding material name using materialIndices
+        std::string materialName;
+
+        for (const auto& entry : materialIndices) {
+            if (entry.second == static_cast<std::size_t>(materialIndex)) {
+                materialName = entry.first;
+                break;
+            }
+        }
+        std::map<std::string, std::map<std::string, double>> materialProperties = inputReader_.getAllMaterialProperties();
+
+        // Find the material properties for the materialName in materialProperties
+        auto materialPropsIterator = materialProperties.find(materialName);
+
+        if (materialPropsIterator != materialProperties.end()) {
+            // Try to find the specified property in the material properties map
+            const std::map<std::string, double>& materialProps = materialPropsIterator->second;
+            auto propertyIterator = materialProps.find(propertyName);
+
+            if (propertyIterator != materialProps.end()) {
+                // Retrieve the property value
+                propertyValue = propertyIterator->second;
+            } else {
+                std::cerr << "Warning: Property '" << propertyName << "' not found for element index " << elementIndex << std::endl;
+            }
+        } else {
+            std::cerr << "Warning: Material properties not found for element index " << elementIndex << std::endl;
+        }
+    } else {
+        std::cerr << "Error: Element index " << elementIndex << " is out of bounds." << std::endl;
+    }
+
+    return propertyValue;
+}

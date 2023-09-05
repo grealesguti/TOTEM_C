@@ -12,9 +12,16 @@
 class Solver {
 public:
     Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit);
+    // SOLVER FUNCTIONS
     arma::mat Assembly(const arma::mat&,const arma::mat& coords, double heatvalue);
-    arma::mat Thermoelectricity(const arma::mat&,const arma::mat& coords, double heatvalue);
+    arma::mat DirectSolver(const arma::mat&,const arma::mat& coords, double heatvalue);
     arma::mat NewtonRaphson(const arma::mat&,const arma::mat& coords, double heatvalue);
+
+    // PHYSICS
+    arma::mat CoupledThermoelectricity(const arma::mat&,const arma::mat& coords, double heatvalue);
+    arma::mat CoupledThermoelectromechanics(const arma::mat&,const arma::mat& coords, double heatvalue);
+    arma::mat Mechanics(const arma::mat&,const arma::mat& coords, double heatvalue);
+    arma::mat Decoupled_Thermoelectricity_Mechanics(const arma::mat&,const arma::mat& coords, double heatvalue);
 
 private:
     const InputReader& inputReader_;
