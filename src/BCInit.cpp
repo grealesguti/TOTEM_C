@@ -10,10 +10,11 @@ BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
     loadVector_.resize(2 * numNodes);
     initialdofs_.resize(2 * numNodes);
 
-    // You may want to initialize other member variables here
+    boundaryConditions();
 }
 
 void BCInit::boundaryConditions() {
+    std::cout << "#BCInit::boundaryConditions" << std::endl;
     // Get the boundary conditions from the InputReader
     const auto& boundaryConditions = inputReader_.getBoundaryConditions();
 

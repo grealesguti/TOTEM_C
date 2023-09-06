@@ -20,6 +20,9 @@ Mesh::Mesh(const InputReader& inputReader)
         coord[(nodeTags[i]-1)*3+1]=coord2[i*3+1];
         coord[(nodeTags[i]-1)*3+2]=coord2[i*3+2];
     }     
+
+    InitMeshEntityElements();
+    applyElementsMaterials();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,6 +307,7 @@ std::vector<int> Mesh::printElementTypesInPhysicalGroupByName(std::string desire
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 void Mesh::InitMeshEntityElements() {
+    std::cout << "#MESH::InitMeshEntityElements" << std::endl;
 
     // Resize the element_materials vector to the size of numelem
     element_materials.resize(numelem);
@@ -334,12 +338,13 @@ void Mesh::InitMeshEntityElements() {
             break; // Exit the loop when a match is found
         }
     }
-
+    // Write to screen if the entity is found and its tags
     if (matchingTag == -1) {
         std::cout << "Physical group with name '" << desiredEntityName << "' not found." << std::endl;
     }else{
         std::cout << "Physical group with name '" << desiredEntityName << "' found with tag "<< matchingTag << " and dimension "<< matchedDimension << std::endl;
     }
+    // Get the elements of the found entity
     std::vector<int> entityTags; // Declare a non-reference vector
     gmsh::model::getEntitiesForPhysicalGroup(matchedDimension, matchingTag, entityTags);
 
@@ -349,7 +354,7 @@ void Mesh::InitMeshEntityElements() {
     for (int entityTag : entityTags) {
         std::vector<std::vector<std::size_t>> entity_NodeTags, elementTagsInEntity;
         std::vector<int> elemTypes;
-        // Modify the function call to read the dimension as well
+        // TODO: Modify the function call to read the dimension as well
         gmsh::model::mesh::getElements(elemTypes, elementTagsInEntity, entity_NodeTags, matchedDimension, entityTag); 
         std::cout << "Get elements and nodes for entity " << entityTag << "." << std::endl;
         for (const auto& e : elementTagsInEntity) {
@@ -433,6 +438,8 @@ void Mesh::InitMeshEntityElements() {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 void Mesh::applyElementsMaterials() {
+    std::cout << "#MESH::ApplyElementMaterials" << std::endl;
+
     // Get all material properties from the InputReader
     std::map<std::string, std::map<std::string, double>> materialProperties = inputReader_.getAllMaterialProperties();
     std::size_t currentIndex = 1; // Start indexing from 1
@@ -448,25 +455,50 @@ void Mesh::applyElementsMaterials() {
         }
     }
 
-    // Initialize the element_materials vector with zeros
-    element_materials.assign(numelem, 0);
+    // Initialize the element_materials vector with zeros equal to the largest element index
+    auto maxElementIter = std::max_element(elementTags.begin(), elementTags.end());
+    element_materials.assign(*maxElementIter+2, 0);
+    std::cerr << "Maximum element index:" << *maxElementIter << std::endl;
 
     // Iterate through the material names and assign material indices to elements
     for (const auto& entry : materialProperties) {
         const std::string& materialName = entry.first;
         const std::vector<std::size_t> elementsForMaterial = getElementsForPhysicalGroup(materialName);
-
         // Retrieve the material index for this material name
         std::size_t materialIndex = materialIndices[materialName];
+        std::cout << "MaterialName: " << materialName << ", MaterialIndex: " << materialIndex << ", Elements: " << elementsForMaterial.size() << std::endl;
 
         // Assign the material index to the corresponding elements
         for (std::size_t j : elementsForMaterial) {
-            if (j < numelem) {
+            if (j < *maxElementIter+1) {
                 element_materials[j] = static_cast<int>(materialIndex);
             } else {
-                std::cerr << "Warning: Element index out of range." << std::endl;
+                std::cerr << "Warning: Element index out of range, "<< j << " ." << std::endl;
             }
         }
+    }
+    // Check that no element in element_materials is equal to zero
+    std::vector<std::size_t> elementsWithoutMaterial;
+
+    for (std::size_t i = 0; i < elementTags.size(); i++) {
+        std::size_t elementIndex = elementTags[i];
+        if (elementIndex < element_materials.size()) {
+            int materialIndex = element_materials[elementIndex];
+            if (materialIndex == 0) {
+                elementsWithoutMaterial.push_back(elementIndex);
+            }
+        } else {
+            std::cerr << "Warning: Element tag " << elementIndex << " exceeds the size of element_materials." << std::endl;
+        }
+    }
+
+    // Print the list of elements without material properties
+    if (!elementsWithoutMaterial.empty()) {
+        std::cerr << "Warning: The following elements have no material properties:" << std::endl;
+        for (std::size_t elementIndex : elementsWithoutMaterial) {
+            std::cerr << elementIndex << " ";
+        }
+        std::cerr << std::endl;
     }
 }
 

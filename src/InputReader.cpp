@@ -1,8 +1,12 @@
 #include "InputReader.h"
 
-InputReader::InputReader(const std::string& filename) : filename_(filename) {}
+InputReader::InputReader(const std::string& filename) : filename_(filename) {
+    readFile();
+    std::cout << "Read Input." << std::endl;
+}
 
 bool InputReader::readFile() {
+    std::cout << "#INPUTREADER::readFile" << std::endl;
     std::ifstream inputFile(filename_);
     if (!inputFile.is_open()) {
         std::cerr << "Error opening file." << std::endl;
