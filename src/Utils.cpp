@@ -100,7 +100,7 @@ mat Utils::TransformCoordinates(const mat& cooro) {
     return cooro1.t();
 }
 
-void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<mat(const mat&,const mat&, double)> func, mat& result) {
+void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<mat(const mat& natcoords,const mat& coords, double value)> func, mat& result) {
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
         result = zeros<mat>(1, 1); // Initialize result to a 1x1 matrix with zero value.

@@ -457,7 +457,7 @@ void Mesh::applyElementsMaterials() {
 
     // Initialize the element_materials vector with zeros equal to the largest element index
     auto maxElementIter = std::max_element(elementTags.begin(), elementTags.end());
-    element_materials.assign(*maxElementIter+2, 0);
+    element_materials.assign(*maxElementIter+1, 0);
     std::cerr << "Maximum element index:" << *maxElementIter << std::endl;
 
     // Iterate through the material names and assign material indices to elements
@@ -470,7 +470,7 @@ void Mesh::applyElementsMaterials() {
 
         // Assign the material index to the corresponding elements
         for (std::size_t j : elementsForMaterial) {
-            if (j < *maxElementIter+1) {
+            if (j <= *maxElementIter+1) {
                 element_materials[j] = static_cast<int>(materialIndex);
             } else {
                 std::cerr << "Warning: Element index out of range, "<< j << " ." << std::endl;

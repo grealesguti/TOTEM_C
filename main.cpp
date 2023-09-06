@@ -28,17 +28,10 @@ int main(int argc, char* argv[]) {
 
     // Read the input file 
     InputReader reader(inputFileName); 
-    reader.readFile();
-    std::cout << "Read Input." << std::endl;
 
     Mesh mesh(reader);
-    mesh.InitMeshEntityElements();
-    std::string desiredGroupName= "Tsink";
-    std::vector<int> entityTags = mesh.printElementTypesInPhysicalGroupByName(desiredGroupName);
-    std::cout << "Read Mesh." << std::endl;
 
     BCInit BC(reader,mesh);
-    BC.boundaryConditions();
 
     PostProcessing psp(reader,mesh);
     psp.WriteUnstructuredMeshToVTK();

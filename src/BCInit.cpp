@@ -2,16 +2,22 @@
 using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
-    : inputReader_(inputReader), mesh_(mesh), elements_() {
+    : inputReader_(inputReader), mesh_(mesh), elements_(), utils_() {
     // Get the number of nodes from the mesh
     int numNodes = mesh_.getNumAllNodes();
 
     // Initialize the loadVector_ member with a size double the number of nodes
-    loadVector_.resize(2 * numNodes);
+    loadVector_.zeros(2 * numNodes, 1);
     initialdofs_.resize(2 * numNodes);
+
+    // Initialize the integrationFunction_ using the assignment operator
+    integrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, double value) {
+        return CteSurfBC(natcoords, coords, value);
+    };
 
     boundaryConditions();
 }
+
 
 void BCInit::boundaryConditions() {
     std::cout << "#BCInit::boundaryConditions" << std::endl;
@@ -58,20 +64,14 @@ void BCInit::boundaryConditions() {
                         std::cerr << "Node index out of bounds: " << node << std::endl;
                     }
             }
-        }else if (boundaryName == "heat_x") {
+        }else if (boundaryName == "heat_n") {
             // Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
-            const auto& nodes = mesh_.getNodesForPhysicalGroup(surfaceName);
+            const auto& elements = mesh_.getElementsForPhysicalGroup(surfaceName);
             // Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
-            for (unsigned long long node : nodes) {
-                    // Make sure node is within the bounds of initialdofs_
-                    if (node*2+1 < initialdofs_.size()) {
-                        initialdofs_[node*2+1] = value;
-                        mesh_.setFixedof(node*2+1);
-                    } else {
-                        // Handle the case where the node index is out of bounds.
-                        // This could be an error condition depending on your application.
-                        std::cerr << "Node index out of bounds: " << node << std::endl;
-                    }
+            for (unsigned long long element : elements) {
+
+                utils_.gaussIntegrationBC(2, 3, element, mesh_, value, integrationFunction_, loadVector_);
+
             }
     }
 
@@ -79,7 +79,7 @@ void BCInit::boundaryConditions() {
 }
 
 
-mat BCInit::CteSurfBC(const mat& natcoords,const mat& coords, double heatvalue) {
+mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value) {
     // Define variables
     vec shapeFunctions(4);             // Shape functions
     mat shapeFunctionDerivatives(4, 2); // Shape function derivatives
@@ -101,8 +101,9 @@ mat BCInit::CteSurfBC(const mat& natcoords,const mat& coords, double heatvalue) 
     // Calculate the determinant of the Jacobian
     double detJ = det(JM);
     // Calculate F_q (heat flow) using your equations
-    F_q = detJ * (shapeFunctions * heatvalue);
+    F_q = detJ * (shapeFunctions * value);
 
-    // Return the heat flow as a 3x1 Armadillo matrix
+    // Return the heat flow as a 4x1 Armadillo matrix
     return F_q;
 }
+

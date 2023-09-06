@@ -21,10 +21,14 @@ public:
 private:
     const InputReader& inputReader_;
     Mesh& mesh_;
+    Utils utils_;
     Elements elements_; // Add a member variable of type Elements
 
     std::string meshFileName_;
-    std::vector<double> loadVector_,initialdofs_;
+    std::vector<double> initialdofs_;
+    arma::mat loadVector_;
+    std::function<arma::mat(const arma::mat&, const arma::mat&, double)> integrationFunction_;
+
 };
 
 #endif // BCINIT_H
