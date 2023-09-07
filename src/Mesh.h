@@ -45,6 +45,8 @@ public:
     void applyElementsMaterials();
     // Declaration for getMaterialPropertyForElement function
     double getMaterialPropertyForElement(std::size_t elementIndex, const std::string& propertyName) const;
+    std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
+    getElementsAndNodeTagsForPhysicalGroup(const std::string& desiredGroupName);
 
 private:
     const InputReader& inputReader_;

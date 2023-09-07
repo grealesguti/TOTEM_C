@@ -17,7 +17,7 @@ public:
     void CalculateLinearTriangularShapeFunctionDerivatives(double xi, double eta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a linear quadrilateral element with 4 nodes
-    void EvaluateLinearQuadrilateralShapeFunctions(double xi, double eta, arma::vec& shapeFunctions);
+    arma::mat EvaluateLinearQuadrilateralShapeFunctions(double xi, double eta);
     void EvaluateLinearQuadrilateralShapeFunctionDerivatives(double xi, double eta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a quadratic quadrilateral element with 8 nodes

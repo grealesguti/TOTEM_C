@@ -220,6 +220,74 @@ void Mesh::setFixedof(int dof) {
             freedofs_[dof] = 0;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
+Mesh::getElementsAndNodeTagsForPhysicalGroup(const std::string& desiredGroupName) {
+    // Get the desired entity name from InputReader
+    std::cout << "Looking for element types in  "<< desiredGroupName<< std::endl;
+    std::vector<std::size_t> elementsingroup;
+    int matchedDimension = -1;
+    std::vector<std::pair<int, int>> dimTags;
+
+    // Get all the physical groups
+    gmsh::model::getPhysicalGroups(dimTags, -1);
+
+    int matchingTag = -1;
+    for (const auto& pair : dimTags) {
+        int entityDimension = pair.first;
+        int entityTag = pair.second;
+
+        // Get the name of the physical group
+        std::string groupName;
+        gmsh::model::getPhysicalName(entityDimension, entityTag, groupName);
+
+        // Compare the group name with the desired name
+        if (groupName == desiredGroupName) {
+            matchingTag = entityTag;
+            matchedDimension = entityDimension; // Store the matched dimension
+            break; // Exit the loop when a match is found
+        }
+    }
+
+    if (matchingTag == -1) {
+        std::cout << "Physical group with name '" << desiredGroupName << "' not found." << std::endl;
+    }else{
+        std::cout << "Physical group with name '" << desiredGroupName << "' found with tag "<< matchingTag << " and dimension "<< matchedDimension << std::endl;
+    }
+    std::vector<int> entityTags; // Declare a non-reference vector
+    gmsh::model::getEntitiesForPhysicalGroup(matchedDimension, matchingTag, entityTags);
+
+    if (entityTags.empty()) {
+        std::cout << "No entities found in physical group with name '" << desiredGroupName << "'" << std::endl;
+    }
+    std::vector<std::size_t> nodesingroup; // Vector to store all entity_NodeTags
+
+    for (int entityTag : entityTags) {
+        std::vector<std::vector<std::size_t>> entity_NodeTags, elementTagsInEntity;
+        std::vector<int> elemTypes;
+
+        // Modify the function call to read the dimension as well
+        gmsh::model::mesh::getElements(elemTypes, elementTagsInEntity, entity_NodeTags, matchedDimension, entityTag);
+
+        std::cout << "Get elements and nodes for entity " << entityTag << "." << std::endl;
+
+        for (const auto& e : entity_NodeTags) {
+            nodesingroup.insert(nodesingroup.end(), e.begin(), e.end()); // Flatten the node tags
+        }
+
+        for (const auto& e : elementTagsInEntity) {
+            for (const auto& element : e) {
+                elementsingroup.push_back(element);
+            }
+        }
+    }
+
+    // Return a pair of vectors: elementsingroup and nodesingroup
+    return std::make_pair(elementsingroup, nodesingroup);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Print element types in a physical group with a desired name

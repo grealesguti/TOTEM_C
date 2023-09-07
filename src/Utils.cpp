@@ -53,32 +53,51 @@ void Utils::getGaussWeightsAndPoints(int order, mat& weights, mat& gaussPoints) 
         gaussPoints = G14;
     }
 }
+#include <iostream>
+#include <armadillo>
 
-mat Utils::TransformCoordinates(const mat& cooro) {
-    // Extract v1 and v2 vectors
-    arma::rowvec v1 = cooro.row(1) - cooro.row(0);
-    arma::rowvec v2 = cooro.row(2) - cooro.row(0);
+arma::mat Utils::TransformCoordinates(const arma::mat& cooro) {
+    // Extract columns v1 and v2 vectors
+    arma::colvec v1 = cooro.col(1) - cooro.col(0);
+    arma::colvec v2 = cooro.col(2) - cooro.col(0);
 
     // Calculate thetay1 in radians and degrees
     double thetay1 = -std::acos(arma::dot(v1, v2) / (arma::norm(v1) * arma::norm(v2)));
     double thetay1deg = thetay1 * 180 / arma::datum::pi;
 
-    // Calculate nxy
-    arma::rowvec nxy = arma::cross(v1, v2) / arma::norm(arma::cross(v1, v2));
+    arma::colvec nxy;
+
+    if (v1.n_elem == 3 && v2.n_elem == 3) {
+        // Calculate nxy
+        nxy = arma::cross(v1, v2) / arma::norm(arma::cross(v1, v2));
+    } else {
+        // Handle the case where the input vectors are not valid
+        std::cerr << "Utils::TransformCoordinates: Invalid input vectors for cross product." << std::endl;
+        // Print the input vectors and their sizes
+        std::cout << "Vector v1: " << v1 << std::endl;
+        std::cout << "Vector v2: " << v2 << std::endl;
+        std::cout << "v1 size: " << v1.n_elem << std::endl;
+        std::cout << "v2 size: " << v2.n_elem << std::endl;
+        return arma::mat(); // Return an empty matrix to indicate an error
+    }
+      //  std::cout << "Cross product done" << std::endl;
 
     // Calculate thetaz0 in radians and degrees
     double thetaz0 = std::acos(nxy(0));
     double thetaz0deg = thetaz0 * 180 / arma::datum::pi;
+    //std::cout << "angle calculated" << std::endl;
 
     // Check if thetaz0 is greater than pi/2 and perform necessary adjustments
     if (thetaz0 > arma::datum::pi / 2) {
+      //  std::cout << "angle adjustment" << std::endl;
         double thetaz0old = thetaz0;
         double thetaz0degold = thetaz0deg;
         thetaz0 = arma::datum::pi - thetaz0;
         thetaz0deg = thetaz0 * 180 / arma::datum::pi;
         thetay1 = -thetay1;
     }
-
+    
+    //std::cout << "create transformation matrixes" << std::endl;
     // Create transformation matrices Gz0 and Gy1
     arma::mat Gz0 = {{std::cos(thetaz0), -std::sin(thetaz0), 0},
                      {std::sin(thetaz0), std::cos(thetaz0), 0},
@@ -89,18 +108,28 @@ mat Utils::TransformCoordinates(const mat& cooro) {
                      {std::sin(thetay1), 0, std::cos(thetay1)}};
 
     // Calculate the transformation matrix G
+    //std::cout << "create full transformation" << std::endl;
     arma::mat G = Gz0 * Gy1;
-
-    // Set elements of G close to zero to zero
-    G(arma::abs(G) < 1e-12).zeros();
-
+    //std::cout << "set to zeros" << std::endl;
+    // Set elements of G close to zero to zer    std::cout << "create full transformation" << std::endl;o
+    for (arma::uword i = 0; i < G.n_rows; ++i) {
+        for (arma::uword j = 0; j < G.n_cols; ++j) {
+            if (std::abs(G(i, j)) < 1e-12) {
+                G(i, j) = 0.0;
+            }
+        }
+    }
+    //std::cout << "do the transformation" << std::endl;
     // Perform the final coordinate transformation
-    arma::mat cooro1 = G.t() * cooro.t();
+    arma::mat cooro1 = G * cooro;
+    //std::cout << "Coordinate transformation done" << std::endl;
 
-    return cooro1.t();
+    return cooro1;
 }
 
+
 void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<mat(const mat& natcoords,const mat& coords, double value)> func, mat& result) {
+    
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
         result = zeros<mat>(1, 1); // Initialize result to a 1x1 matrix with zero value.
@@ -119,6 +148,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
 
     // Get the Gauss weights and points for the specified order.
     Utils::getGaussWeightsAndPoints(order, weights, gaussPoints);
+    //std::cout << "Retrieve gauss integration points" << std::endl;
 
     if (weights.is_empty() || gaussPoints.is_empty()) {
         std::cerr << "Invalid order for Gauss integration." << std::endl;
@@ -133,32 +163,54 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
     }
 
     // Initialize result to zero matrix of appropriate dimensions.
-    result = zeros<mat>(dimension, dimension);
+    // result = zeros<mat>(dimension, dimension); Should already be of the right dimension??, in this case 8,1?? make a check that it is the right dimension
+    //std::cout << "Start the integration " ;
 
     if (dimension == 1) {
         // 1D integration using a single loop.
+        //std::cout << "of dimension 1" << std::endl;
+            arma::mat natcoords(1, 1);
+            arma::mat f(2, 1);
         for (uword i = 0; i < weights.n_rows; ++i) {
-            result += weights(i, 0) * func({gaussPoints(i, 0)},coordinates_tr,bcvalue);
-        }
+                // Explicitly use the arma::operator* function for multiplication
+                f = arma::operator*(func(natcoords, coordinates_tr, bcvalue), weights(i, 0));
+                result += f;                }
     } else if (dimension == 2) {
+        //std::cout << "of dimension 2" << std::endl;
+            arma::mat natcoords(2, 1);
+            arma::mat f(4, 1);
         // 2D integration using a double loop.
         for (uword i = 0; i < weights.n_rows; ++i) {
             for (uword j = 0; j < weights.n_rows; ++j) {
-                result += weights(i, 0) * weights(j, 0) * func({gaussPoints(i, 0), gaussPoints(j, 0)},coordinates_tr,bcvalue);
-            }
+                        natcoords(0, 0) = gaussPoints(i, 0);
+                        natcoords(1, 0) = gaussPoints(j, 0);
+                        // Create a 3x1 matrix with gaussPoints(i, 0), gaussPoints(j, 0), and gaussPoints(k, 0)
+                        // Explicitly use the arma::operator* function for multiplication
+                        f = arma::operator*(func(natcoords, coordinates_tr, bcvalue), weights(i, 0) * weights(j, 0));
+                        result += f;            
+             }
         }
     } else if (dimension == 3) {
         if (order == 14) {
+            //std::cout << "of dimension 3 and reduced order" << std::endl;
             // Special case for 3D integration with order 14.
             // Directly use the given points and weights without looping.
             result = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints,coordinates_tr,bcvalue);
         } else {
+            arma::mat natcoords(3, 1);
+            arma::mat f(8, 1);
+            //std::cout << "of dimension 3" << std::endl;
             // Generic 3D integration using a triple loop.
             for (uword i = 0; i < weights.n_rows; ++i) {
                 for (uword j = 0; j < weights.n_rows; ++j) {
                     for (uword k = 0; k < weights.n_rows; ++k) {
-                        result += weights(i, 0) * weights(j, 0) * weights(k, 0) *
-                                  func({gaussPoints(i, 0), gaussPoints(j, 0), gaussPoints(k, 0)},coordinates_tr,bcvalue);
+                        natcoords(0, 0) = gaussPoints(i, 0);
+                        natcoords(1, 0) = gaussPoints(j, 0);
+                        natcoords(2, 0) = gaussPoints(k, 0);
+                        // Create a 3x1 matrix with gaussPoints(i, 0), gaussPoints(j, 0), and gaussPoints(k, 0)
+                        // Explicitly use the arma::operator* function for multiplication
+                        f = arma::operator*(func(natcoords, coordinates_tr, bcvalue), weights(i, 0) * weights(j, 0) * weights(k, 0));
+                        result += f;
                     }
                 }
             }

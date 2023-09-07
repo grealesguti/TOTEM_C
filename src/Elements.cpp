@@ -52,15 +52,17 @@ void Elements::CalculateLinearTriangularShapeFunctionDerivatives(double xi, doub
 // QUAD 4 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate shape functions for a linear quadrilateral element with 4 nodes
-void Elements::EvaluateLinearQuadrilateralShapeFunctions(double xi, double eta, arma::vec& shapeFunctions) {
-    // Ensure the shapeFunctions vector is of the correct size (4 nodes)
-    shapeFunctions.set_size(4);
+arma::mat Elements::EvaluateLinearQuadrilateralShapeFunctions(double xi, double eta) {
+    // Define the shape functions as a 4x1 matrix
+    arma::mat shapeFunctions(4, 1, arma::fill::zeros);
 
-    // Define the shape functions for a linear quadrilateral element
-    shapeFunctions(0) = 0.25 * (1 - xi) * (1 - eta);
-    shapeFunctions(1) = 0.25 * (1 + xi) * (1 - eta);
-    shapeFunctions(2) = 0.25 * (1 + xi) * (1 + eta);
-    shapeFunctions(3) = 0.25 * (1 - xi) * (1 + eta);
+    // Compute the shape functions for a linear quadrilateral element
+    shapeFunctions(0, 0) = 0.25 * (1 - xi) * (1 - eta); // N1
+    shapeFunctions(1, 0) = 0.25 * (1 + xi) * (1 - eta); // N2
+    shapeFunctions(2, 0) = 0.25 * (1 + xi) * (1 + eta); // N3
+    shapeFunctions(3, 0) = 0.25 * (1 - xi) * (1 + eta); // N4
+
+    return shapeFunctions;
 }
 
 // Evaluate derivatives of shape functions for a linear quadrilateral element with 4 nodes
