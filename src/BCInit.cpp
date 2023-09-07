@@ -66,44 +66,54 @@ void BCInit::boundaryConditions() {
             }
             }else if (boundaryName == "heat_n") {
         // Assuming 'getNodesForPhysicalGroup' returns a vector of unsigned long long integers
-        auto result = mesh_.getElementsAndNodeTagsForPhysicalGroup(surfaceName);
-        // Extract the vectors from the result
-        std::vector<std::size_t> elements = result.first;
-        std::vector<std::size_t> element_nodes = result.second;
-        // Loop through the nodes and set the corresponding values in initialdofs_ (loadVector_)
-        std::cout << "HEAT INTEGRATION." << std::endl;
-        // Debugging: Print the sizes of elements and element_nodes vectors
-        std::cout << "Size of 'elements' vector: " << elements.size() << std::endl;
-        std::cout << "Size of 'element_nodes' vector: " << element_nodes.size() << std::endl;
+            auto result = mesh_.getElementsAndNodeTagsForPhysicalGroup(surfaceName);
+            std::vector<std::size_t> elements = result.first;
+            std::vector<std::size_t> element_nodes = result.second;
+            std::vector<int> elementindexVector(elements.size());
 
-        // Declare element_load_vector outside the loop
-        arma::mat element_load_vector(4, 1, arma::fill::zeros);
-        int cc = 0;
-        for (unsigned long long element : elements) {
-            // Reset element_load_vector to zeros before each element
-            element_load_vector.zeros();
+            // Initialize elementindexVector
+            std::iota(elementindexVector.begin(), elementindexVector.end(), 0);
 
-            // Calculate element_load_vector for the current element
-            utils_.gaussIntegrationBC(2, 3, element, mesh_, value, integrationFunction_, element_load_vector);
-            
-            // Debugging: Print the current element being processed
-            //std::cout << "Processing element: " << element << std::endl;
+            // Debugging: Print the sizes of elements and element_nodes vectors
+            std::cout << "Size of 'elements' vector: " << elements.size() << std::endl;
+            std::cout << "Size of 'element_nodes' vector: " << element_nodes.size() << std::endl;
 
-            // Loop through element nodes and update loadVector_
-            for (size_t i = cc * 4; i < (cc + 1) * 4; ++i) {
-                if (i < element_nodes.size()) {
-                    size_t node = element_nodes[i];
-                    if (node * 2 + 1 < loadVector_.size()) {
-                        loadVector_(node * 2 + 1) = element_load_vector(i - cc * 4, 0);
+
+            std::cout << "HEAT INTEGRATION." << std::endl;
+            arma::mat element_load_vector(4, 1, arma::fill::zeros);
+
+            #pragma omp parallel for shared(loadVector_) private(element_load_vector)
+            for (std::size_t elementindex : elementindexVector) {
+                // Reset element_load_vector to zeros before each element
+                std::size_t element = elements[elementindex];
+                element_load_vector.set_size(4, 1); // Resize element_load_vector to 4x1
+                element_load_vector.zeros();
+
+                // Calculate element_load_vector for the current element
+                utils_.gaussIntegrationBC(2, 3, element, mesh_, value, integrationFunction_, element_load_vector);
+
+                // Debugging: Print the current element being processed
+                //std::cout << "Processing element: " << element << std::endl;
+
+                // Loop through element nodes and update loadVector_
+                for (std::size_t i = elementindex * 4; i < (elementindex + 1) * 4; ++i) {
+                    if (i < element_nodes.size()) {
+                        std::size_t node = element_nodes[i];
+                        if (node * 2 + 1 < loadVector_.size()) {
+                            // Use atomic operation to avoid race condition
+                            #pragma omp atomic
+                            loadVector_(node * 2 + 1) += element_load_vector(i - elementindex * 4, 0);
+                        } else {
+                            std::cerr << "Error: Node index out of bounds!" << std::endl;
+                        }
                     } else {
-                        std::cerr << "Error: Node index out of bounds!" << std::endl;
+                        std::cerr << "Error: Element node index out of bounds!" << std::endl;
                     }
-                } else {
-                    std::cerr << "Error: Element node index out of bounds!" << std::endl;
                 }
             }
-            cc += 1;
-        }
+
+
+        
         std::cout << "HEAT INTEGRATION FINISHED." << std::endl;
 
     }

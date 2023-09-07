@@ -5,6 +5,7 @@
 #include "Elements.h"
 #include "Utils.h"
 #include <armadillo>
+#include <omp.h>
 
 #include "Mesh.h"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
