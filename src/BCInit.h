@@ -15,6 +15,8 @@ public:
     BCInit(const InputReader& inputReader, Mesh& mesh);
     void boundaryConditions();
     void createLoadVector();
+    const double getInitialDof(int i) const {return initialdofs_[i];}
+    arma::mat getloadVector() const {return loadVector_;}
 
     // Integrators
     arma::mat CteSurfBC(const arma::mat&,const arma::mat& coords, double heatvalue);

@@ -26,6 +26,20 @@ public:
 
     // Setters
     void setFixedof(int dof); 
+    // Function to populate freedofsidx based on freedofs_
+    void SetFreedofsIdx() {
+        freedofsidx_.clear();  // Clear the vector if it contains any previous data
+
+        for (int i = 0; i < freedofs_.size(); ++i) {
+            if (freedofs_[i] == 1) {
+                freedofsidx_.push_back(i);
+            }
+        }
+    }
+    // Function to retrieve the freedofsidx_ vector
+    const std::vector<int>& GetFreedofsIdx() const {
+        return freedofsidx_;
+    }
     std::vector<int> printElementTypesInPhysicalGroupByName(std::string desiredGroupName);
     void InitMeshEntityElements();
 
@@ -54,7 +68,7 @@ private:
     int numPointsInHex = 8; // Get the number of points in the hexahedron i from the MSH file
     int numelem, numnodes, numallnodes;
     std::vector<double> coord;
-    std::vector<int> freedofs_, element_materials;
+    std::vector<int> freedofs_,freedofsidx_, element_materials;
     std::map<std::string, std::size_t> materialIndices;
 
 

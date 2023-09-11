@@ -1,93 +1,202 @@
 #include "Solver.h"
 using namespace arma;
-/*
+
 Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
-    : inputReader_(inputReader), mesh_(mesh), elements_(), bcinit_(bcinit) {
+    : inputReader_(inputReader), mesh_(mesh), elements_(), bcinit_(bcinit), utils_() {
     // Get the number of nodes from the mesh
     int numNodes = mesh_.getNumAllNodes();
 
     // Initialize the loadVector_ member with a size double the number of nodes
-    loadVector_.resize(2 * numNodes);
-    initialdofs_.resize(2 * numNodes);
+    loadVector_= bcinit_.getloadVector();
+    soldofs_.resize(2 * numNodes);
+    freedofidxs_ = mesh_.GetFreedofsIdx();
 
-    // You may want to initialize other member variables here
+    // Initialize the thermoelectricityintegrationFunction_ using the assignment operator
+    thermoelectricityintegrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs) -> Utils::IntegrationResult {
+        return thermoelectricityintegration(natcoords, coords, dofs);
+    };
+
 }
 
-arma::mat Solver::Assembly(const arma::mat& U0, const arma::mat& coords, double heatvalue) {
-    int ITMAX = 100; // Maximum number of iterations (adjust as needed)
-    double tol = 1e-6; // Tolerance for convergence (adjust as needed)
-    
-    int ntot = coords.n_rows;
-    int dof = 2; // Assuming 2 degrees of freedom per node
-    
-    int nele = order.n_rows;
-    
-    arma::mat U = U0;
-    arma::mat dU = arma::zeros<arma::mat>(dof * ntot, 1);
-    
-    arma::vec sigma = matp.row(0);
-    arma::vec sigmainf = matp.row(1);
-    arma::vec a = matp.row(2);
-    arma::vec ainf = matp.row(3);
-    arma::vec kx = matp.row(4);
-    
-    arma::mat Ra = arma::zeros<arma::mat>(dof * ntot, 1);
-    arma::mat KJs = arma::zeros<arma::mat>(dof * ntot, dof * ntot);
-    
-    int nnv = 20 * 2 * 20 * 2;
-    
-    int it = 0;
-    double err = 1.0;
-    
-    while (it < ITMAX && err > tol) {
-        it++;
+std::pair<arma::mat, arma::mat> Solver::Assembly() {
+    int nodes_per_element = 8; // Total number of nodes per element
+    int dof_per_node = 2; // Assuming 2 degrees of freedom per node
+    const std::vector<std::size_t>& elementTags = mesh_.getElementTags();
+
+    // Create matrices to store global assembly
+    arma::mat Ra = arma::zeros<arma::mat>(dof_per_node * nodes_per_element, 1);
+    arma::mat KJ = arma::zeros<arma::mat>(dof_per_node * nodes_per_element, dof_per_node * nodes_per_element);
+
+    // Temporary matrices for the current element
+    arma::mat element_Ra = arma::zeros<arma::mat>(16, 1);
+    arma::mat element_KJ = arma::zeros<arma::mat>(16, 16);
+    arma::mat element_dofs = arma::zeros<arma::mat>(16, 1);
+
+    // Iterate over each element tag
+    for (std::size_t elementTag : elementTags) {
+        // Call the getElementInfo function to retrieve information about the element
+        std::vector<int> nodeTags_el;
+        mesh_.getElementInfo(elementTag, nodeTags_el);
         
-        // Assembly
-        Ra.zeros();
-        KJs.zeros();
-        
-        for (int ii = 0; ii < nele; ii++) {
-            arma::mat Rs = arma::zeros<arma::mat>(dof * ntot, 1);
-            
-            // Material properties of element ii (you'll need to adapt this)
-            // arma::mat De, Da, Dk;
-            // GetDeDaDk(sigma(ii), sigmainf(ii), a(ii), ainf(ii), kx(ii), De, Da, Dk);
-            
-            // Degrees of freedom of element ii (you'll need to adapt this)
-            arma::uvec doforderT = (order.row(ii) - 1) * dof;
-            arma::uvec doforderV = (order.row(ii) - 1) * dof + 1;
-            
-            arma::uvec doforder = arma::join_cols(doforderT, doforderV);
-            
-            arma::mat Te = U(doforderT);
-            arma::mat Ve = U(doforderV);
-            
-            arma::mat KJ, R;
-            
-            // Call your GaussKAS14A_TO function to get KJ and R (you'll need to adapt this)
-            // GaussKAS14A_TO(coords, order.row(ii), Te, Ve, matp, matv, ii, sysv, localval, xx(ii), p, seebp, rhop, KJ, R);
-            
-            // Assembly in global residual and jacobian matrix
-            Rs(doforder, 0) = R;
-            Ra += Rs;
-            KJs.submat(doforder, doforder) += KJ;
+        int cc = 0;
+        for (int nodeTag : nodeTags_el) {
+            element_dofs[cc] = nodeTag * dof_per_node;
+            element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
+            cc += 1;
         }
-        
-        // Solve system
-        arma::mat R_b = Ra.rows(freedofs) - F(freedofs) + K_conv.submat(freedofs, freedofs) * U(freedofs);
-        arma::mat KJ_b = KJs.submat(freedofs, freedofs) - K_conv.submat(freedofs, freedofs);
-        
-        arma::mat dUf = arma::solve(KJ_b, R_b); // Calculation of step
-        
-        U(freedofs) += dUf; // Update current dof values
-        
-        err = arma::norm(R_b);
-        
-        ev(it) = err;
+
+        // Resize temporary matrices for the current element
+        element_KJ.set_size(16, 16);
+        element_KJ.zeros();
+        element_Ra.set_size(16, 1);
+        element_Ra.zeros();
+
+        // Calculate element_load_vector for the current element
+        /*
+        utils_.gaussIntegrationAssembly(2, 3, elementTag, mesh_, nodeTags_el, thermoelectricityintegrationFunction_, element_KJ, element_Ra);
+
+        // Assembly in global residual and jacobian matrix
+        Ra.submat(element_dofs, 0) += element_Ra;
+        KJ.submat(element_dofs, element_dofs) += element_KJ;*/
     }
-    
-    return U;
-} 
+
+    /*
+    // Reduced System
+    arma::mat R_b = Ra.rows(freedofidxs_) - loadVector_(freedofidxs_);
+    arma::mat KJ_b = KJ.submat(freedofidxs_, freedofidxs_);*/
+    arma::mat R_b = {1};
+    arma::mat KJ_b = {1};
+    // Return the results
+    return std::make_pair(R_b, KJ_b);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+
+Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs){
+        Utils::IntegrationResult result; // Create a struct to hold KV and R
+
+    // Define variables
+    //std::cout << "Initialize shape functions and derivatives. " << std::endl;
+    arma::vec shapeFunctions(8,1);          // Shape functions as a 4x1 vector
+    mat shapeFunctionDerivatives(8, 3); // Shape function derivatives
+    mat JM(3, 3);                       // Jacobian matrix
+    // Define the integration result matrices
+    arma::mat RT(8, 8, arma::fill::zeros);
+    arma::mat RV(8, 1, arma::fill::zeros);
+    arma::mat K11(8, 8, arma::fill::zeros);
+    arma::mat K12(8, 1, arma::fill::zeros);
+    arma::mat K21(1, 8, arma::fill::zeros);
+    arma::mat K22(1, 1, arma::fill::zeros);
+
+    //std::cout << "Extract natural coordinates. " << std::endl;
+    double xi=0, eta=0, zeta=0;
+    if (natcoords.n_rows >= 3 && natcoords.n_cols >= 1) {
+        xi = natcoords(0, 0);  // Extracts the first element (a)
+        eta = natcoords(1, 0); // Extracts the second element (b)
+        zeta = natcoords(2, 0); // Extracts the second element (b)
+    } else {
+        // Handle the case when natcoords doesn't have the expected dimensions.
+        std::cout << "Wrong natural coordinates dimension. " << std::endl;
+        // You may want to print an error message or take appropriate action.
+    }
+    // Calculate shape functions and their derivatives
+    //std::cout << "Get shape functions and derivatives. " << std::endl;
+    elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta, shapeFunctions);
+    elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+    //std::cout << "Calculate jacobian. " << std::endl;
+    // Calculate Jacobian matrix JM
+    for (uword i = 0; i < 3; ++i) {
+        for (uword j = 0; j < 3; ++j) {
+            JM(i, j) = dot(shapeFunctionDerivatives.col(i), coords.col(j)); // Fixed the loop indexing
+        }
+    }
+
+    //std::cout << "Calculate jacobian determinant. " << std::endl;
+    // Calculate the determinant of the Jacobian
+    double detJ = arma::det(JM);
+
+    // Extract material properties
+    double De=1, Da=1, Dk=1, Dde=0, Dda=0, Ddk=0;
+
+    // Assuming 'dofs' is an Armadillo vector
+    arma::mat Tee(8,1); // Vector for odd-indexed elements
+    arma::mat Vee(8,1); // Vector for even-indexed elements
+    // Extract odd-indexed elements into Tee
+    for (uword i = 1; i < dofs.n_elem; i += 2) {
+        Tee((i-1) / 2,1) = dofs(i);
+    }
+
+    // Extract even-indexed elements into Vee
+    for (uword i = 0; i < 16; i += 2) {
+        Vee(i / 2,1) = dofs(i);
+    }
+    double Th = arma::dot(shapeFunctions, dofs);
+
+    // Calculate je and qe
+    arma::mat transposed = shapeFunctionDerivatives.t();
+    arma::mat negTransposed = -transposed;
+
+    arma::mat test = negTransposed * Vee;
+
+    arma::mat je = -De * shapeFunctionDerivatives.t() * Vee - Da * De * shapeFunctionDerivatives.t() * Tee;
+    arma::mat qe = Da * (shapeFunctions.t() * Tee) * je - Dk * shapeFunctionDerivatives.t() * Tee;
+    arma::mat test = shapeFunctions * Tee;
+
+    // Calculate djdt, djdv, dqdt, and dqdv
+    arma::mat djdt, djdv, dqdt, dqdv;
+    // Perform the necessary calculations here to compute djdt, djdv, dqdt, dqdv
+    arma::mat djdt = -Da * De * shapeFunctionDerivatives.t()
+                    - Dda * De * shapeFunctionDerivatives.t() * Tee * shapeFunctions.t()
+                    - Dde * (shapeFunctionDerivatives.t() * Vee.t() + Da * shapeFunctionDerivatives.t() * Tee.t()) * shapeFunctions.t();
+
+    arma::mat djdv = -De * shapeFunctionDerivatives;
+
+    arma::mat dqdt = Da * Th * djdt + Da * je * shapeFunctions.t()
+                    - Dk * shapeFunctionDerivatives.t()
+                    + Dda * Th * je * shapeFunctions.t()
+                    - Ddk * shapeFunctionDerivatives.t() * Tee * shapeFunctions.t();
+
+    arma::mat dqdv = -Da * De * Th * shapeFunctionDerivatives;
+    // Perform the integration for RT, RV, K11, K12, K21, K22
+    RT += (-shapeFunctionDerivatives * qe + shapeFunctions * je.t() * shapeFunctionDerivatives.t() * Vee);
+    RV += (-shapeFunctionDerivatives * je);
+    K11 +=(shapeFunctionDerivatives * dqdt - shapeFunctions * (djdt.t() * shapeFunctionDerivatives.t() * Vee).t());
+    K12 +=(shapeFunctionDerivatives * dqdv - shapeFunctions * (djdv.t() * shapeFunctionDerivatives.t() * Vee).t() - N * (je.t() * shapeFunctionDerivatives));
+    K21 +=(shapeFunctionDerivatives * djdt);
+    K22 +=(shapeFunctionDerivatives * djdv);
+
+
+    //std::cout << "Calculate integrand. " << std::endl;
+    // Define the size of KV and RT matrices based on the sizes of K11, K12, K21, K22, RT, and RV
+    int numRowsKJ = K11.n_rows + K21.n_rows;
+    int numColsKJ = K11.n_cols + K12.n_cols;
+    int numRowsR = RT.n_rows + RV.n_rows;
+
+    // Initialize KV and RT matrices with zeros
+    arma::mat KV(numRowsKJ, numColsKJ, arma::fill::zeros);
+    arma::mat R(numRowsR, 1, arma::fill::zeros);
+
+    // Fill in the KV matrix with K11, K12, K21, and K22
+    KV.submat(0, 0, K11.n_rows - 1, K11.n_cols - 1) = K11;
+    KV.submat(0, K11.n_cols, K11.n_rows - 1, numColsKJ - 1) = K12;
+    KV.submat(K11.n_rows, 0, numRowsKJ - 1, K11.n_cols - 1) = K21;
+    KV.submat(K11.n_rows, K11.n_cols, numRowsKJ - 1, numColsKJ - 1) = K22;
+
+    // Fill in the R matrix with RT and RV
+    R.submat(0, 0, RT.n_rows - 1, 0) = RT;
+    R.submat(RT.n_rows, 0, numRowsR - 1, 0) = RV;
+
+    //std::cout << "integrand calculated " << std::endl;
+    result.R=R;
+    result.KT=KV;
+    // Return the heat flow as a 4x1 Armadillo matrix
+    return result;
+}
+
+
+/*
 // make another function only as solver that takes the assembly and can choose btw modified NR, or normal and returns successive errors etc...
 // This is the function to call from main after initialization of the class. This function also identifies the physics to use
 

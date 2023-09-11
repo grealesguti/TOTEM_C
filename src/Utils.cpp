@@ -220,3 +220,114 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
         result = zeros<mat>(1, 1); // Initialize result to a 1x1 matrix with zero value.
     }
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////
+Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int elementTag, Mesh mesh, std::function<arma::mat(const arma::mat& natcoords, const arma::mat& coords)> func) {
+    Utils::IntegrationResult result; // Create a struct to hold KT and R
+
+    if (dimension < 1 || order < 1) {
+        std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
+        return result;
+    }
+
+    arma::mat weights;
+    arma::mat gaussPoints;
+    std::vector<int> nodeTags_el;
+    mesh.getElementInfo(elementTag, nodeTags_el);
+    arma::mat coordinates(3, nodeTags_el.size());
+    arma::mat coordinates_tr(3, nodeTags_el.size());
+
+    coordinates = mesh.getCoordinates(nodeTags_el);
+    coordinates_tr = TransformCoordinates(coordinates);
+
+    // Get the Gauss weights and points for the specified order.
+    Utils::getGaussWeightsAndPoints(order, weights, gaussPoints);
+
+    if (weights.is_empty() || gaussPoints.is_empty()) {
+        std::cerr << "Invalid order for Gauss integration." << std::endl;
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
+        return result;
+    }
+
+    if (weights.n_rows != gaussPoints.n_rows) {
+        std::cerr << "Weights and Gauss points have mismatched dimensions." << std::endl;
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
+        return result;
+    }
+
+    // Initialize result.KT and result.R to zero matrices of appropriate dimensions.
+    if (dimension == 1) {
+        // 1D integration using a single loop.
+        arma::mat natcoords(1, 1);
+        arma::mat Re(4, 1, arma::fill::zeros);
+        arma::mat KTe(4, 4, arma::fill::zeros);
+
+        for (uword i = 0; i < weights.n_rows; ++i) {
+            natcoords(0, 0) = gaussPoints(i, 0);
+            arma::mat localResult = func(natcoords, coordinates_tr);
+            Re += localResult * weights(i, 0);
+            KTe += localResult * localResult.t() * weights(i, 0);
+        }
+
+            result.KT = KTe;
+            result.R = Re;
+
+    } else if (dimension == 2) {
+        // 2D integration using a double loop.
+        arma::mat natcoords(2, 1);
+        arma::mat R(8, 1, arma::fill::zeros);
+        arma::mat KT(8, 8, arma::fill::zeros);
+
+        for (uword i = 0; i < weights.n_rows; ++i) {
+            for (uword j = 0; j < weights.n_rows; ++j) {
+                natcoords(0, 0) = gaussPoints(i, 0);
+                natcoords(1, 0) = gaussPoints(j, 0);
+                arma::mat localResult = func(natcoords, coordinates_tr);
+                R += localResult * weights(i, 0) * weights(j, 0);
+                KT += localResult * localResult.t() * weights(i, 0) * weights(j, 0);
+            }
+        }
+
+            result.KT = KT;
+            result.R = R;
+
+    } else if (dimension == 3) {
+        if (order == 14) {
+            // Special case for 3D integration with order 14.
+            // Directly use the given points and weights without looping.
+            result.KT = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints, coordinates_tr);
+            result.R = arma::zeros<arma::mat>(16, 1); // Initialize R to a zero matrix.
+        } else {
+            arma::mat natcoords(3, 1);
+            arma::mat R(16, 1, arma::fill::zeros);
+            arma::mat KT(16, 16, arma::fill::zeros);
+
+            for (uword i = 0; i < weights.n_rows; ++i) {
+                for (uword j = 0; j < weights.n_rows; ++j) {
+                    for (uword k = 0; k < weights.n_rows; ++k) {
+                        natcoords(0, 0) = gaussPoints(i, 0);
+                        natcoords(1, 0) = gaussPoints(j, 0);
+                        natcoords(2, 0) = gaussPoints(k, 0);
+                        arma::mat localResult = func(natcoords, coordinates_tr);
+                        R += localResult * weights(i, 0) * weights(j, 0) * weights(k, 0);
+                        KT += localResult * localResult.t() * weights(i, 0) * weights(j, 0) * weights(k, 0);
+                    }
+                }
+            }
+
+            result.KT = KT;
+            result.R = R;
+        }
+    } else {
+        std::cerr << "Invalid dimension for Gauss integration." << std::endl;
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
+    }
+
+    return result; // Return the struct containing KT and R.
+}

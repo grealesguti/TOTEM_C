@@ -81,19 +81,23 @@ void BCInit::boundaryConditions() {
 
             std::cout << "HEAT INTEGRATION." << std::endl;
             arma::mat element_load_vector(4, 1, arma::fill::zeros);
+            // Get and print the number of threads
+            int num_threads = omp_get_max_threads();
+            std::cout << "Number of threads to be used: " << num_threads << std::endl;
 
             #pragma omp parallel for shared(loadVector_) private(element_load_vector)
             for (std::size_t elementindex : elementindexVector) {
                 // Reset element_load_vector to zeros before each element
                 std::size_t element = elements[elementindex];
                 element_load_vector.set_size(4, 1); // Resize element_load_vector to 4x1
+
                 element_load_vector.zeros();
 
                 // Calculate element_load_vector for the current element
                 utils_.gaussIntegrationBC(2, 3, element, mesh_, value, integrationFunction_, element_load_vector);
 
                 // Debugging: Print the current element being processed
-                //std::cout << "Processing element: " << element << std::endl;
+                // std::cout << "Processing element: " << element << std::endl;
 
                 // Loop through element nodes and update loadVector_
                 for (std::size_t i = elementindex * 4; i < (elementindex + 1) * 4; ++i) {
@@ -119,7 +123,7 @@ void BCInit::boundaryConditions() {
     }
 
     }
-
+    mesh_.SetFreedofsIdx(); // store the index of the dofs that are not fixed in order
 }
 
 
