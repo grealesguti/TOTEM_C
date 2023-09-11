@@ -223,8 +223,13 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
 
 
 //////////////////////////////////////////////////////////////////////////////////
-Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int elementTag, Mesh mesh, std::function<arma::mat(const arma::mat& natcoords, const arma::mat& coords)> func) {
-    Utils::IntegrationResult result; // Create a struct to hold KT and R
+Utils::IntegrationResult Utils::gaussIntegrationK(
+    int dimension,
+    int order,
+    int elementTag,
+    Mesh mesh,
+    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::mat& dofs)> func
+) {    Utils::IntegrationResult result; // Create a struct to hold KT and R
 
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
@@ -232,13 +237,22 @@ Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int 
         result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
         return result;
     }
-
+    int nodes_per_element = 8; // Total number of nodes per element
+    int dof_per_node = 2; // Assuming 2 degrees of freedom per node
     arma::mat weights;
     arma::mat gaussPoints;
     std::vector<int> nodeTags_el;
     mesh.getElementInfo(elementTag, nodeTags_el);
     arma::mat coordinates(3, nodeTags_el.size());
     arma::mat coordinates_tr(3, nodeTags_el.size());
+    arma::mat element_dofs = arma::zeros<arma::mat>(16, 1);
+
+        int cc = 0;
+        for (int nodeTag : nodeTags_el) {
+            element_dofs[cc] = nodeTag * dof_per_node;
+            element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
+            cc += 1;
+        }
 
     coordinates = mesh.getCoordinates(nodeTags_el);
     coordinates_tr = TransformCoordinates(coordinates);
@@ -269,7 +283,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int 
 
         for (uword i = 0; i < weights.n_rows; ++i) {
             natcoords(0, 0) = gaussPoints(i, 0);
-            arma::mat localResult = func(natcoords, coordinates_tr);
+            arma::mat localResult = func(natcoords, coordinates_tr,element_dofs );
             Re += localResult * weights(i, 0);
             KTe += localResult * localResult.t() * weights(i, 0);
         }
@@ -287,7 +301,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int 
             for (uword j = 0; j < weights.n_rows; ++j) {
                 natcoords(0, 0) = gaussPoints(i, 0);
                 natcoords(1, 0) = gaussPoints(j, 0);
-                arma::mat localResult = func(natcoords, coordinates_tr);
+                arma::mat localResult = func(natcoords, coordinates_tr,element_dofs);
                 R += localResult * weights(i, 0) * weights(j, 0);
                 KT += localResult * localResult.t() * weights(i, 0) * weights(j, 0);
             }
@@ -300,7 +314,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int 
         if (order == 14) {
             // Special case for 3D integration with order 14.
             // Directly use the given points and weights without looping.
-            result.KT = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints, coordinates_tr);
+            result.KT = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints, coordinates_tr,element_dofs);
             result.R = arma::zeros<arma::mat>(16, 1); // Initialize R to a zero matrix.
         } else {
             arma::mat natcoords(3, 1);
@@ -313,7 +327,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(int dimension, int order, int 
                         natcoords(0, 0) = gaussPoints(i, 0);
                         natcoords(1, 0) = gaussPoints(j, 0);
                         natcoords(2, 0) = gaussPoints(k, 0);
-                        arma::mat localResult = func(natcoords, coordinates_tr);
+                        arma::mat localResult = func(natcoords, coordinates_tr,element_dofs);
                         R += localResult * weights(i, 0) * weights(j, 0) * weights(k, 0);
                         KT += localResult * localResult.t() * weights(i, 0) * weights(j, 0) * weights(k, 0);
                     }

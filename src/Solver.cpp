@@ -45,29 +45,23 @@ std::pair<arma::mat, arma::mat> Solver::Assembly() {
             cc += 1;
         }
 
-        // Resize temporary matrices for the current element
-        element_KJ.set_size(16, 16);
-        element_KJ.zeros();
-        element_Ra.set_size(16, 1);
-        element_Ra.zeros();
-
-        // Calculate element_load_vector for the current element
-        /*
-        utils_.gaussIntegrationAssembly(2, 3, elementTag, mesh_, nodeTags_el, thermoelectricityintegrationFunction_, element_KJ, element_Ra);
-
+        Utils::IntegrationResult result; // Create a struct to hold KV and R
+        result = utils_.gaussIntegrationK(2, 3, elementTag, mesh_, thermoelectricityintegrationFunction_);
+        element_KJ =result.KT;
+        element_Ra =result.R;
         // Assembly in global residual and jacobian matrix
-        Ra.submat(element_dofs, 0) += element_Ra;
-        KJ.submat(element_dofs, element_dofs) += element_KJ;*/
+        //Ra.submat(element_dofs, 0) += element_Ra;
+        //KJ.submat(element_dofs, element_dofs) += element_KJ;
     }
 
-    /*
+    
     // Reduced System
-    arma::mat R_b = Ra.rows(freedofidxs_) - loadVector_(freedofidxs_);
-    arma::mat KJ_b = KJ.submat(freedofidxs_, freedofidxs_);*/
-    arma::mat R_b = {1};
-    arma::mat KJ_b = {1};
+    //arma::mat R_b = Ra.rows(freedofidxs_) - loadVector_(freedofidxs_);
+    //arma::mat KJ_b = KJ.submat(freedofidxs_, freedofidxs_);
+    //arma::mat R_b = {1};
+    //arma::mat KJ_b = {1};
     // Return the results
-    return std::make_pair(R_b, KJ_b);
+    return std::make_pair(element_Ra, element_KJ);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -163,7 +157,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     RT += (-shapeFunctionDerivatives * qe + shapeFunctions * je.t() * shapeFunctionDerivatives.t() * Vee);
     RV += (-shapeFunctionDerivatives * je);
     K11 +=(shapeFunctionDerivatives * dqdt - shapeFunctions * (djdt.t() * shapeFunctionDerivatives.t() * Vee).t());
-    K12 +=(shapeFunctionDerivatives * dqdv - shapeFunctions * (djdv.t() * shapeFunctionDerivatives.t() * Vee).t() - N * (je.t() * shapeFunctionDerivatives));
+    K12 +=(shapeFunctionDerivatives * dqdv - shapeFunctions * (djdv.t() * shapeFunctionDerivatives.t() * Vee).t() - shapeFunctions * (je.t() * shapeFunctionDerivatives));
     K21 +=(shapeFunctionDerivatives * djdt);
     K22 +=(shapeFunctionDerivatives * djdv);
 
