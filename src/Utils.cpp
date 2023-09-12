@@ -229,7 +229,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     int elementTag,
     Mesh mesh,
     std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::mat& dofs)> func
-) {    Utils::IntegrationResult result; // Create a struct to hold KT and R
+) {    
+    Utils::IntegrationResult result; // Create a struct to hold KT and R
 
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
@@ -254,11 +255,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
             cc += 1;
         }
 
-    coordinates = mesh.getCoordinates(nodeTags_el);
-    coordinates_tr = TransformCoordinates(coordinates);
 
-    // Get the Gauss weights and points for the specified order.
-    Utils::getGaussWeightsAndPoints(order, weights, gaussPoints);
+    this->getGaussWeightsAndPoints(order, weights, gaussPoints);
 
     if (weights.is_empty() || gaussPoints.is_empty()) {
         std::cerr << "Invalid order for Gauss integration." << std::endl;
@@ -283,9 +281,9 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
 
         for (uword i = 0; i < weights.n_rows; ++i) {
             natcoords(0, 0) = gaussPoints(i, 0);
-            arma::mat localResult = func(natcoords, coordinates_tr,element_dofs );
-            Re += localResult * weights(i, 0);
-            KTe += localResult * localResult.t() * weights(i, 0);
+            Utils::IntegrationResult localResult = func(natcoords, coordinates_tr,element_dofs );
+            Re += localResult.R * weights(i, 0);
+            KTe += localResult.KT * weights(i, 0);
         }
 
             result.KT = KTe;
@@ -301,9 +299,9 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
             for (uword j = 0; j < weights.n_rows; ++j) {
                 natcoords(0, 0) = gaussPoints(i, 0);
                 natcoords(1, 0) = gaussPoints(j, 0);
-                arma::mat localResult = func(natcoords, coordinates_tr,element_dofs);
-                R += localResult * weights(i, 0) * weights(j, 0);
-                KT += localResult * localResult.t() * weights(i, 0) * weights(j, 0);
+                Utils::IntegrationResult localResult = func(natcoords, coordinates_tr,element_dofs);
+                R += localResult.R * weights(i, 0) * weights(j, 0);
+                KT += localResult.KT * weights(i, 0) * weights(j, 0);
             }
         }
 
@@ -314,8 +312,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
         if (order == 14) {
             // Special case for 3D integration with order 14.
             // Directly use the given points and weights without looping.
-            result.KT = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints, coordinates_tr,element_dofs);
-            result.R = arma::zeros<arma::mat>(16, 1); // Initialize R to a zero matrix.
+            //result.KT = weights * weights.t() % weights * weights.t() % weights * weights.t() * func(gaussPoints, coordinates_tr,element_dofs);
+            //result.R = arma::zeros<arma::mat>(16, 1); // Initialize R to a zero matrix.
         } else {
             arma::mat natcoords(3, 1);
             arma::mat R(16, 1, arma::fill::zeros);
@@ -327,9 +325,9 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
                         natcoords(0, 0) = gaussPoints(i, 0);
                         natcoords(1, 0) = gaussPoints(j, 0);
                         natcoords(2, 0) = gaussPoints(k, 0);
-                        arma::mat localResult = func(natcoords, coordinates_tr,element_dofs);
-                        R += localResult * weights(i, 0) * weights(j, 0) * weights(k, 0);
-                        KT += localResult * localResult.t() * weights(i, 0) * weights(j, 0) * weights(k, 0);
+                        Utils::IntegrationResult localResult = func(natcoords, coordinates_tr,element_dofs);
+                        R += localResult.R * weights(i, 0) * weights(j, 0) * weights(k, 0);
+                        KT += localResult.KT * weights(i, 0) * weights(j, 0) * weights(k, 0);
                     }
                 }
             }

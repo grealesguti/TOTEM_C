@@ -136,10 +136,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
 
     arma::mat je = -De * shapeFunctionDerivatives.t() * Vee - Da * De * shapeFunctionDerivatives.t() * Tee;
     arma::mat qe = Da * (shapeFunctions.t() * Tee) * je - Dk * shapeFunctionDerivatives.t() * Tee;
-    arma::mat test = shapeFunctions * Tee;
 
-    // Calculate djdt, djdv, dqdt, and dqdv
-    arma::mat djdt, djdv, dqdt, dqdv;
     // Perform the necessary calculations here to compute djdt, djdv, dqdt, dqdv
     arma::mat djdt = -Da * De * shapeFunctionDerivatives.t()
                     - Dda * De * shapeFunctionDerivatives.t() * Tee * shapeFunctions.t()

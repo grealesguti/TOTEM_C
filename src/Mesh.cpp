@@ -454,8 +454,6 @@ void Mesh::InitMeshEntityElements() {
         for (int i = 0; i < elementNodeTags.size(); ++i) {
                 freedofs_[elementNodeTags[i]*2]=1;
                 freedofs_[elementNodeTags[i]*2+1]=1;
-                freedofsidx_.push_back(elementNodeTags[i]*2);
-                freedofsidx_.push_back(elementNodeTags[i]*2+1);
         }
 
     }

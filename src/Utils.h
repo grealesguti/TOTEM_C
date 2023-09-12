@@ -16,7 +16,7 @@ public:
     void getGaussWeightsAndPoints(int order, arma::mat& weights, arma::mat& gaussPoints);
     void gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<arma::mat(const arma::mat&,const arma::mat&, double)> func, arma::mat& result);
     // Function to perform Gaussian integration
-    static IntegrationResult gaussIntegrationK(
+    IntegrationResult gaussIntegrationK(
         int dimension,
         int order,
         int elementTag,

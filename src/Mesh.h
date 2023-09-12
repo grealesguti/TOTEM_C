@@ -70,8 +70,6 @@ private:
     std::vector<double> coord;
     std::vector<int> freedofs_,freedofsidx_, element_materials;
     std::map<std::string, std::size_t> materialIndices;
-
-
 };
 
 #endif // MESH_H
