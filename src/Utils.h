@@ -1,6 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
-
+#include <fstream>
 #include <iostream>
 #include <armadillo>
 #include <functional>
@@ -24,7 +24,9 @@ public:
         std::function<IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::mat& dofs)> func
     );
     arma::mat TransformCoordinates(const arma::mat& cooro);
-
+    // Function to write an Armadillo matrix or vector to a file
+    template<typename T>
+    static bool writeArmaToFile(const T& data, const std::string& filename);
 };
 
 #endif // UTILS_H

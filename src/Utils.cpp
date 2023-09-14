@@ -343,3 +343,61 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
 
     return result; // Return the struct containing KT and R.
 }
+
+
+template <typename T>
+bool Utils::writeArmaToFile(const T& data, const std::string& filename) {
+    // Open the file in binary mode for writing
+    std::ofstream file(filename, std::ios::binary);
+    
+    // Check if the file opened successfully
+    if (!file.is_open()) {
+        std::cerr << "Error: Unable to open file for writing." << std::endl;
+        return false;
+    }
+
+    // Write the matrix or vector to the file
+    if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec>) {
+        // For dense data (vector or matrix)
+        file.write(reinterpret_cast<const char*>(data.memptr()), sizeof(typename T::elem_type) * data.n_elem);
+    } else if constexpr (std::is_same_v<T, arma::sp_mat>) {
+        // For sparse matrix (CSR format)
+        const arma::uword n_rows = data.n_rows;
+        const arma::uword n_cols = data.n_cols;
+        const arma::uword n_nonzeros = data.n_nonzero;
+
+        // Write matrix dimensions and the number of non-zeros
+        file.write(reinterpret_cast<const char*>(&n_rows), sizeof(arma::uword));
+        file.write(reinterpret_cast<const char*>(&n_cols), sizeof(arma::uword));
+        file.write(reinterpret_cast<const char*>(&n_nonzeros), sizeof(arma::uword));
+
+        // Write the values, row indices, and column pointers
+        file.write(reinterpret_cast<const char*>(data.values), sizeof(typename T::elem_type) * n_nonzeros);
+        file.write(reinterpret_cast<const char*>(data.row_indices), sizeof(arma::uword) * n_nonzeros);
+        file.write(reinterpret_cast<const char*>(data.col_ptrs), sizeof(arma::uword) * (n_cols + 1));
+    } else {
+        // Handle unsupported types here
+        std::cerr << "Error: Unsupported data type." << std::endl;
+        return false;
+    }
+
+    // Close the file
+    file.close();
+
+    // Check if the write was successful
+    if (!file.good()) {
+        std::cerr << "Error: Failed to write data to the file." << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+// Explicit template specialization for arma::mat
+template bool Utils::writeArmaToFile(const arma::mat& data, const std::string& filename);
+
+// Explicit template specialization for arma::vec
+template bool Utils::writeArmaToFile(const arma::vec& data, const std::string& filename);
+
+// Explicit template specialization for arma::sp_mat (sparse matrix)
+template bool Utils::writeArmaToFile(const arma::sp_mat& data, const std::string& filename);
