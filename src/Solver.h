@@ -11,10 +11,16 @@
 
 class Solver {
 public:
+
+    struct SparseSystem {
+        arma::sp_mat KT_sparse_reduced;
+        arma::uvec R_reduced;
+    };
+
     Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit);
     // SOLVER FUNCTIONS
     // Function to perform assembly and return R_b and KJ_b
-    std::pair<arma::mat, arma::mat> Assembly();
+    SparseSystem Assembly();
     //arma::mat DirectSolver(const arma::mat&,const arma::mat& coords, double heatvalue);
     //arma::mat NewtonRaphson(const arma::mat&,const arma::mat& coords, double heatvalue);
 

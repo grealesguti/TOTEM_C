@@ -32,13 +32,21 @@ public:
     const std::map<std::pair<std::string, std::string>, double>& getBoundaryConditions() const {
         return boundaryConditions_;
     }
+    // Setter method for DesiredOutput_
+    void setDesiredOutput(const std::string& desiredOutput) {
+        DesiredOutput_ = desiredOutput;
+    }
 
+    // Getter method for DesiredOutput_
+    const std::string& getDesiredOutput() const {
+        return DesiredOutput_;
+    }
     // OTHER METHODS //
     // Method to read Gmsh mesh file
     bool readGmshMesh();
 private:
     std::string filename_;
-    std::string meshFileName_,MeshEntityName_; // Variable to store the mesh file name
+    std::string meshFileName_,MeshEntityName_,DesiredOutput_; // Variable to store the mesh file name
     std::map<std::string, std::map<std::string, double>> MaterialProperties_;
     std::map<std::pair<std::string, std::string>, double> boundaryConditions_;
     // Initialize a vector to store material indices for elements

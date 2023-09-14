@@ -254,7 +254,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
             element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
             cc += 1;
         }
-
+    // get current dofs from elementdofs index, this is the input!!!
 
     this->getGaussWeightsAndPoints(order, weights, gaussPoints);
 

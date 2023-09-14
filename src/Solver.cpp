@@ -18,50 +18,89 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 
 }
 
-std::pair<arma::mat, arma::mat> Solver::Assembly() {
+Solver::SparseSystem Solver::Assembly() {
     int nodes_per_element = 8; // Total number of nodes per element
     int dof_per_node = 2; // Assuming 2 degrees of freedom per node
     const std::vector<std::size_t>& elementTags = mesh_.getElementTags();
+    std::size_t num_of_elements = elementTags.size();
 
-    // Create matrices to store global assembly
-    arma::mat Ra = arma::zeros<arma::mat>(dof_per_node * nodes_per_element, 1);
-    arma::mat KJ = arma::zeros<arma::mat>(dof_per_node * nodes_per_element, dof_per_node * nodes_per_element);
+    // Initialize larger matrices for KJ and Ra
+    arma::mat larger_KJ(16, num_of_elements, arma::fill::zeros);
+    arma::mat larger_Ra(16, num_of_elements, arma::fill::zeros);
+    arma::umat larger_element_dofs(8, num_of_elements, arma::fill::zeros);
+
+    // Full Residual vector
+    int totalmeshnodes = mesh_.getNumAllNodes();
+    arma::uvec Full_Ra = arma::uvec(totalmeshnodes*dof_per_node, arma::fill::zeros);
+
 
     // Temporary matrices for the current element
     arma::mat element_Ra = arma::zeros<arma::mat>(16, 1);
     arma::mat element_KJ = arma::zeros<arma::mat>(16, 16);
-    arma::mat element_dofs = arma::zeros<arma::mat>(16, 1);
+    arma::uvec element_dofs = arma::uvec(16, arma::fill::zeros);
+    arma::uvec element_zeros = arma::uvec(16, arma::fill::zeros);
 
-    // Iterate over each element tag
-    for (std::size_t elementTag : elementTags) {
-        // Call the getElementInfo function to retrieve information about the element
-        std::vector<int> nodeTags_el;
-        mesh_.getElementInfo(elementTag, nodeTags_el);
-        
-        int cc = 0;
-        for (int nodeTag : nodeTags_el) {
-            element_dofs[cc] = nodeTag * dof_per_node;
-            element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
-            cc += 1;
+        //#pragma omp parallel num_threads(num_threads)
+        //{
+            int elementIndex; // Declare this variable within the parallel section
+
+            // Each thread will execute a subset of the loop iterations
+        //    #pragma omp for
+            for (elementIndex = 0; elementIndex < elementTags.size(); elementIndex++) {
+                std::size_t elementTag = elementTags[elementIndex];
+
+                // Rest of your loop code remains the same
+                std::vector<int> nodeTags_el;
+                mesh_.getElementInfo(elementTag, nodeTags_el);
+
+                int cc = 0;
+                for (int nodeTag : nodeTags_el) {
+                    element_dofs[cc] = nodeTag * dof_per_node;
+                    element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
+                    cc += 1;
+                }
+
+                Utils::IntegrationResult result;
+                result = utils_.gaussIntegrationK(2, 3, elementTag, mesh_, thermoelectricityintegrationFunction_,element_dofs,soldofs_(element_dofs),);
+
+                arma::vec vector_KJ = arma::vectorise(result.KT);
+                arma::uvec vector_Ra = arma::vectorise(result.R);
+
+                larger_KJ.row(0) = vector_KJ.t();
+                Full_Ra.subvec(element_dofs)+=vector_Ra;
+                arma::uvec vector_element_dofs = element_dofs.t();
+                larger_element_dofs.col(elementIndex) = vector_element_dofs;
+            }
+        //}
+
+    // Create CSR sparse matrix from larger_KJ and larger_element_dofs
+    arma::mat sparseMatrixData(larger_KJ.n_elem, 1);
+    arma::uvec sparseMatrixRowIndices(larger_KJ.n_elem);
+    arma::uvec sparseMatrixColPtrs(num_of_elements + 1);
+
+    // Initialize variables for CSR construction
+    int nnz = 0;
+    for (int i = 0; i < larger_KJ.n_elem; i++) {
+        for (int j = 0; j < larger_element_dofs.n_rows; j++) {
+            int colIndex = larger_element_dofs(j, i);
+            if (colIndex != 0) {
+                sparseMatrixData(nnz) = larger_KJ(i);
+                sparseMatrixRowIndices(nnz) = j;
+                nnz++;
+            }
         }
-
-        Utils::IntegrationResult result; // Create a struct to hold KV and R
-        result = utils_.gaussIntegrationK(2, 3, elementTag, mesh_, thermoelectricityintegrationFunction_);
-        element_KJ =result.KT;
-        element_Ra =result.R;
-        // Assembly in global residual and jacobian matrix
-        //Ra.submat(element_dofs, 0) += element_Ra;
-        //KJ.submat(element_dofs, element_dofs) += element_KJ;
+        sparseMatrixColPtrs(i + 1) = nnz;
     }
 
+    // Create CSR sparse matrix
+    arma::sp_mat KJ_sparse(sparseMatrixRowIndices, sparseMatrixColPtrs, sparseMatrixData, larger_KJ.n_rows, larger_KJ.n_cols);
     
-    // Reduced System
-    //arma::mat R_b = Ra.rows(freedofidxs_) - loadVector_(freedofidxs_);
-    //arma::mat KJ_b = KJ.submat(freedofidxs_, freedofidxs_);
-    //arma::mat R_b = {1};
-    //arma::mat KJ_b = {1};
-    // Return the results
-    return std::make_pair(element_Ra, element_KJ);
+    // reduce the system and store in the return structure
+    SparseSystem result;
+    result.KT_sparse_reduced=KJ_sparse(arma::uvec(freedofidxs_), arma::uvec(freedofidxs_));
+    result.R_reduced=Full_Ra.subvec(freedofidxs_);;
+
+    return result;
 }
 
 /////////////////////////////////////////////////////////////////////////////
