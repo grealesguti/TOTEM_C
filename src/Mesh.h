@@ -61,7 +61,10 @@ public:
     double getMaterialPropertyForElement(std::size_t elementIndex, const std::string& propertyName) const;
     std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
     getElementsAndNodeTagsForPhysicalGroup(const std::string& desiredGroupName);
-
+    // Function to return coordinates
+    const std::vector<double>& getAllCoordinates() const {
+        return coord;
+    }
 private:
     const InputReader& inputReader_;
     std::vector<std::size_t> elementTags,nodeTags,elementNodeTags,nodeTagselem;

@@ -59,15 +59,14 @@ Solver::SparseSystem Solver::Assembly() {
                     element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
                     cc += 1;
                 }
-
                 Utils::IntegrationResult result;
-                result = utils_.gaussIntegrationK(2, 3, elementTag, mesh_, thermoelectricityintegrationFunction_,element_dofs,soldofs_(element_dofs),);
+                result = utils_.gaussIntegrationK(2, 3, elementTag, mesh_, thermoelectricityintegrationFunction_);
 
                 arma::vec vector_KJ = arma::vectorise(result.KT);
-                arma::uvec vector_Ra = arma::vectorise(result.R);
+                //arma::uvec vector_Ra = arma::vectorise(result.R);
 
                 larger_KJ.row(0) = vector_KJ.t();
-                Full_Ra.subvec(element_dofs)+=vector_Ra;
+                //Full_Ra.subvec(element_dofs)+=vector_Ra;
                 arma::uvec vector_element_dofs = element_dofs.t();
                 larger_element_dofs.col(elementIndex) = vector_element_dofs;
             }
@@ -97,8 +96,8 @@ Solver::SparseSystem Solver::Assembly() {
     
     // reduce the system and store in the return structure
     SparseSystem result;
-    result.KT_sparse_reduced=KJ_sparse(arma::uvec(freedofidxs_), arma::uvec(freedofidxs_));
-    result.R_reduced=Full_Ra.subvec(freedofidxs_);;
+    //result.KT_sparse_reduced=KJ_sparse(arma::uvec(freedofidxs_), arma::uvec(freedofidxs_));
+    //result.R_reduced=Full_Ra.subvec(freedofidxs_);;
 
     return result;
 }

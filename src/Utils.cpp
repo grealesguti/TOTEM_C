@@ -2,11 +2,9 @@
 
 using namespace arma;
 
-Utils::Utils() {
+Utils::Utils(bool someFlag): writeflag_(someFlag) {
 
 }
-
-
 
 void Utils::getGaussWeightsAndPoints(int order, mat& weights, mat& gaussPoints) {
     // Check if the order is valid
@@ -128,7 +126,7 @@ arma::mat Utils::TransformCoordinates(const arma::mat& cooro) {
 }
 
 
-void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<mat(const mat& natcoords,const mat& coords, double value)> func, mat& result) {
+void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<mat(const mat& natcoords,const mat& coords, double value, int element)> func, mat& result) {
     
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
@@ -143,12 +141,55 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
     arma::mat coordinates(3, size(nodeTags_el));
     arma::mat coordinates_tr(3, size(nodeTags_el));
 
+
     coordinates=mesh.getCoordinates(nodeTags_el);
-    coordinates_tr=TransformCoordinates(coordinates);
+    arma::mat iT3= Utils::calculate_inverse_T3(coordinates);
+    coordinates_tr=iT3*coordinates;
+    // Create a new matrix to store the result without the last row
+    arma::mat coordinates_tr_XY;
+    double tolerance = 1e-6; // Define your tolerance here
+
+
+    // Iterate through the rows of coordinates_tr and copy rows that do not meet the tolerance condition
+    for (arma::uword i = 0; i < coordinates_tr.n_rows; ++i) {
+        bool removeRow = true; // Assume we want to remove the row by default
+        double firstValue = coordinates_tr(i, 0); // Store the first value in the row
+
+        // Check if all values in the row are within the tolerance
+        for (arma::uword j = 1; j < coordinates_tr.n_cols; ++j) {
+            if (std::abs(coordinates_tr(i, j) - firstValue) > tolerance) {
+                removeRow = false; // Row contains a different value outside the tolerance, so we keep it
+                break;
+            }
+        }
+
+        if (!removeRow) {
+            // Copy the row to coordinates_tr_XY
+            if (coordinates_tr_XY.is_empty()) {
+                coordinates_tr_XY = coordinates_tr.row(i);
+            } else {
+                coordinates_tr_XY = arma::join_vert(coordinates_tr_XY, coordinates_tr.row(i));
+            }
+        }
+    }
+
+    if (coordinates_tr_XY.is_empty()) {
+        // Handle the case when all rows were removed, resulting in an empty matrix.
+        std::cout << "Warning: All rows removed. coordinates_tr_XY is empty." << std::endl;
+        // You may want to print a warning message or take appropriate action.
+    }
 
     // Get the Gauss weights and points for the specified order.
     Utils::getGaussWeightsAndPoints(order, weights, gaussPoints);
     //std::cout << "Retrieve gauss integration points" << std::endl;
+    if(writeflag_==true){
+        Utils::writeDataToFile(nodeTags_el,"Outputs/BCNodeTags_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(coordinates,"Outputs/BCGaussCoords_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(coordinates_tr,"Outputs/BCGaussCoordsTr_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(coordinates_tr_XY,"Outputs/BCGaussCoordsTrXY_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(gaussPoints,"Outputs/BCGaussPoints_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(weights,"Outputs/BCGaussWeights_"+std::to_string(elementTag)+".txt",true);
+    }
 
     if (weights.is_empty() || gaussPoints.is_empty()) {
         std::cerr << "Invalid order for Gauss integration." << std::endl;
@@ -173,7 +214,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
             arma::mat f(2, 1);
         for (uword i = 0; i < weights.n_rows; ++i) {
                 // Explicitly use the arma::operator* function for multiplication
-                f = arma::operator*(func(natcoords, coordinates_tr, bcvalue), weights(i, 0));
+                f = arma::operator*(func(natcoords, coordinates_tr_XY, bcvalue,elementTag), weights(i, 0));
                 result += f;                }
     } else if (dimension == 2) {
         //std::cout << "of dimension 2" << std::endl;
@@ -186,7 +227,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
                         natcoords(1, 0) = gaussPoints(j, 0);
                         // Create a 3x1 matrix with gaussPoints(i, 0), gaussPoints(j, 0), and gaussPoints(k, 0)
                         // Explicitly use the arma::operator* function for multiplication
-                        f = arma::operator*(func(natcoords, coordinates_tr, bcvalue), weights(i, 0) * weights(j, 0));
+                        f = arma::operator*(func(natcoords, coordinates_tr_XY, bcvalue,elementTag), weights(i, 0) * weights(j, 0));
                         result += f;            
              }
         }
@@ -195,7 +236,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
             //std::cout << "of dimension 3 and reduced order" << std::endl;
             // Special case for 3D integration with order 14.
             // Directly use the given points and weights without looping.
-            result = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints,coordinates_tr,bcvalue);
+            result = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints,coordinates_tr_XY,bcvalue,elementTag);
         } else {
             arma::mat natcoords(3, 1);
             arma::mat f(8, 1);
@@ -209,7 +250,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
                         natcoords(2, 0) = gaussPoints(k, 0);
                         // Create a 3x1 matrix with gaussPoints(i, 0), gaussPoints(j, 0), and gaussPoints(k, 0)
                         // Explicitly use the arma::operator* function for multiplication
-                        f = arma::operator*(func(natcoords, coordinates_tr, bcvalue), weights(i, 0) * weights(j, 0) * weights(k, 0));
+                        f = arma::operator*(func(natcoords, coordinates_tr_XY, bcvalue,elementTag), weights(i, 0) * weights(j, 0) * weights(k, 0));
                         result += f;
                     }
                 }
@@ -344,37 +385,40 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     return result; // Return the struct containing KT and R.
 }
 
-
+//////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-bool Utils::writeArmaToFile(const T& data, const std::string& filename) {
-    // Open the file in binary mode for writing
-    std::ofstream file(filename, std::ios::binary);
-    
+bool Utils::writeDataToFile(const T& data, const std::string& filename, bool append) {
+    // Open the file for writing
+    std::ofstream file;
+
+    if (append) {
+        // Open the file in append mode
+        file.open(filename, std::ios::app);
+    } else {
+        // Open the file in truncation mode (default)
+        file.open(filename);
+    }
+
     // Check if the file opened successfully
     if (!file.is_open()) {
         std::cerr << "Error: Unable to open file for writing." << std::endl;
         return false;
     }
-
-    // Write the matrix or vector to the file
+    // Print "new line" to the file
+    file << "New Data:" << std::endl;
+    // Write the data to the file
     if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec>) {
-        // For dense data (vector or matrix)
-        file.write(reinterpret_cast<const char*>(data.memptr()), sizeof(typename T::elem_type) * data.n_elem);
+        // For Armadillo dense data (vector or matrix)
+        data.save(file, arma::raw_ascii);
     } else if constexpr (std::is_same_v<T, arma::sp_mat>) {
-        // For sparse matrix (CSR format)
-        const arma::uword n_rows = data.n_rows;
-        const arma::uword n_cols = data.n_cols;
-        const arma::uword n_nonzeros = data.n_nonzero;
-
-        // Write matrix dimensions and the number of non-zeros
-        file.write(reinterpret_cast<const char*>(&n_rows), sizeof(arma::uword));
-        file.write(reinterpret_cast<const char*>(&n_cols), sizeof(arma::uword));
-        file.write(reinterpret_cast<const char*>(&n_nonzeros), sizeof(arma::uword));
-
-        // Write the values, row indices, and column pointers
-        file.write(reinterpret_cast<const char*>(data.values), sizeof(typename T::elem_type) * n_nonzeros);
-        file.write(reinterpret_cast<const char*>(data.row_indices), sizeof(arma::uword) * n_nonzeros);
-        file.write(reinterpret_cast<const char*>(data.col_ptrs), sizeof(arma::uword) * (n_cols + 1));
+        // For Armadillo sparse matrix (CSR format)
+        std::cerr << "Error: Writing sparse matrices in ASCII format is not supported." << std::endl;
+        return false;
+    } else if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<int>>) {
+        // For double or int vectors
+        for (const auto& item : data) {
+            file << item << " ";
+        }
     } else {
         // Handle unsupported types here
         std::cerr << "Error: Unsupported data type." << std::endl;
@@ -394,10 +438,72 @@ bool Utils::writeArmaToFile(const T& data, const std::string& filename) {
 }
 
 // Explicit template specialization for arma::mat
-template bool Utils::writeArmaToFile(const arma::mat& data, const std::string& filename);
+template bool Utils::writeDataToFile(const arma::mat& data, const std::string& filename, bool append);
 
 // Explicit template specialization for arma::vec
-template bool Utils::writeArmaToFile(const arma::vec& data, const std::string& filename);
+template bool Utils::writeDataToFile(const arma::vec& data, const std::string& filename, bool append);
 
 // Explicit template specialization for arma::sp_mat (sparse matrix)
-template bool Utils::writeArmaToFile(const arma::sp_mat& data, const std::string& filename);
+template bool Utils::writeDataToFile(const arma::sp_mat& data, const std::string& filename, bool append);
+
+// Explicit template specialization for std::vector<double>
+template bool Utils::writeDataToFile(const std::vector<double>& data, const std::string& filename, bool append);
+
+// Explicit template specialization for std::vector<int>
+template bool Utils::writeDataToFile(const std::vector<int>& data, const std::string& filename, bool append);
+
+/////////////////////////////////////////////////////////////////////////////////////
+arma::mat Utils::calculate_T3(const arma::mat& nodes) { // the input is a 3x4 matrix containing the coords of each node in the columns.
+// LINK: http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-2/
+    if (nodes.n_rows != 3 || nodes.n_cols != 4) {
+        std::cerr << "Input matrix must be 3x4." << std::endl;
+        return arma::mat();  // Return an empty matrix to indicate an error
+    }
+
+    // Extract node coordinates
+    arma::vec V1 = nodes.col(0);
+    arma::vec V2 = nodes.col(1);
+    arma::vec V3 = nodes.col(2);
+
+    // Calculate the unit normal vector XN
+    arma::vec V12 = V2 - V1;
+    arma::vec V31 = V3 - V1;
+    arma::vec XN = V12 / arma::norm(V12);
+    double lx = XN(0);
+    double mx = XN(1);
+    double nx = XN(2);
+
+    // Calculate the unit normal vector ZN
+    arma::vec ZN = arma::cross(V12, V31) / arma::norm(arma::cross(V12, V31));
+    double lz = ZN(0);
+    double mz = ZN(1);
+    double nz = ZN(2);
+
+    // Calculate ly, my, and ny
+    double ly = mz * nx - nz * mx;
+    double my = nz * lx - lz * nx;
+    double ny = lz * mx - mz * lx;
+
+    // Create and return the transformation matrix T3
+    arma::mat T3(3, 3);
+    T3 << lx << mx << nx << arma::endr
+       << ly << my << ny << arma::endr
+       << lz << mz << nz << arma::endr;
+
+    return T3;
+}
+
+arma::mat Utils::calculate_inverse_T3(const arma::mat& nodes) {
+    // Calculate T3
+    arma::mat T3 = calculate_T3(nodes);
+
+    if (T3.is_empty()) {
+        std::cerr << "Error in calculating T3. Cannot compute the inverse." << std::endl;
+        return arma::mat();  // Return an empty matrix to indicate an error
+    }
+
+    // Calculate the inverse of T3
+    arma::mat inverse_T3 = arma::inv(T3);
+
+    return inverse_T3;
+}

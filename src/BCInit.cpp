@@ -2,7 +2,12 @@
 using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
-    : inputReader_(inputReader), mesh_(mesh), elements_(), utils_() {
+    : inputReader_(inputReader), mesh_(mesh), elements_() {
+    if(inputReader_.getDesiredOutput()=="all"){
+        utils_ = Utils(true);
+    }else{
+        utils_ = Utils(false);
+    }
     // Get the number of nodes from the mesh
     int numNodes = mesh_.getNumAllNodes();
 
@@ -11,8 +16,8 @@ BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
     initialdofs_.resize(2 * numNodes);
 
     // Initialize the integrationFunction_ using the assignment operator
-    integrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, double value) {
-        return CteSurfBC(natcoords, coords, value);
+    integrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, double value, int element) {
+        return CteSurfBC(natcoords, coords, value, element);
     };
 
     boundaryConditions();
@@ -85,7 +90,7 @@ void BCInit::boundaryConditions() {
             int num_threads = omp_get_max_threads();
             std::cout << "Number of threads to be used: " << num_threads << std::endl;
 
-            #pragma omp parallel for shared(loadVector_) private(element_load_vector)
+            //#pragma omp parallel for shared(loadVector_) private(element_load_vector)
             for (std::size_t elementindex : elementindexVector) {
                 // Reset element_load_vector to zeros before each element
                 std::size_t element = elements[elementindex];
@@ -97,7 +102,7 @@ void BCInit::boundaryConditions() {
                 utils_.gaussIntegrationBC(2, 3, element, mesh_, value, integrationFunction_, element_load_vector);
 
                 // Debugging: Print the current element being processed
-                // std::cout << "Processing element: " << element << std::endl;
+                 std::cout << "Processing element: " << element << std::endl;
 
                 // Loop through element nodes and update loadVector_
                 for (std::size_t i = elementindex * 4; i < (elementindex + 1) * 4; ++i) {
@@ -105,7 +110,7 @@ void BCInit::boundaryConditions() {
                         std::size_t node = element_nodes[i];
                         if (node * 2 + 1 < loadVector_.size()) {
                             // Use atomic operation to avoid race condition
-                            #pragma omp atomic
+                            //#pragma omp atomic
                             loadVector_(node * 2 + 1) += element_load_vector(i - elementindex * 4, 0);
                         } else {
                             std::cerr << "Error: Node index out of bounds!" << std::endl;
@@ -127,12 +132,11 @@ void BCInit::boundaryConditions() {
 }
 
 
-mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value) {
+mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int element) {
     // Define variables
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     arma::vec shapeFunctions(4,1);          // Shape functions as a 4x1 vector
     mat shapeFunctionDerivatives(4, 2); // Shape function derivatives
-    mat JM(2, 2);                       // Jacobian matrix
     mat F_q(4, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
     //std::cout << "Extract natural coordinates. " << std::endl;
     double xi=0, eta=0;
@@ -151,20 +155,24 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value) {
     elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
-    for (uword i = 0; i < 2; ++i) {
-        for (uword j = 0; j < 2; ++j) {
-            JM(i, j) = dot(shapeFunctionDerivatives.col(i), coords.row(j));
-        }
-    }
-    //std::cout << "Calculate jacobian determinant. " << std::endl;
+    mat JM = shapeFunctionDerivatives.t() * coords.t();
+    //"Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
     double detJ = arma::det(JM);
     //std::cout << "Calculate integrand. " << std::endl;
     // Calculate F_q (heat flow) using your equations
     F_q = detJ * (shapeFunctions * value);
     //std::cout << "integrand calculated " << std::endl;
-
+    if (inputReader_.getDesiredOutput()=="all"){
+        utils_.writeDataToFile(shapeFunctions,"Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
+        utils_.writeDataToFile(shapeFunctionDerivatives,"Outputs/HeatIntegrationShapeFunctionsDerivatives_"+std::to_string(element)+".txt",true);
+        utils_.writeDataToFile(JM,"Outputs/HeatIntegrationJM_"+std::to_string(element)+".txt",true);
+        utils_.writeDataToFile(coords,"Outputs/HeatIntegrationElcoords_"+std::to_string(element)+".txt",true);
+        utils_.writeDataToFile(natcoords,"Outputs/HeatIntegrationNatcoords_"+std::to_string(element)+".txt",true);
+        utils_.writeDataToFile(F_q,"Outputs/HeatIntegrationFq_"+std::to_string(element)+".txt",true);
+    }
     // Return the heat flow as a 4x1 Armadillo matrix
     return F_q;
 }
 
+/////////////////////////////////////////////////////////////////////////

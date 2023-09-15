@@ -475,7 +475,7 @@ void Mesh::InitMeshEntityElements() {
 
         // Populate the coordinates matrix with the requested nodes' coordinates
         for (int i = 0; i < numNodesToRetrieve; ++i) {
-            int nodeTag = nodeTags[i];
+            int nodeTag = nodeTags[i]-1;
             if (nodeTag >= 0 && nodeTag < coord.size() / numCoordinatesPerNode) {
                 // Calculate the starting index of the node's coordinates in the coord vector
                 int startIndex = nodeTag * numCoordinatesPerNode;
