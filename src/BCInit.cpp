@@ -111,7 +111,7 @@ void BCInit::boundaryConditions() {
                         if (node * 2 + 1 < loadVector_.size()) {
                             // Use atomic operation to avoid race condition
                             //#pragma omp atomic
-                            loadVector_(node * 2 + 1) += element_load_vector(i - elementindex * 4, 0);
+                            loadVector_(node * 2) += element_load_vector(i - elementindex * 4, 0);
                         } else {
                             std::cerr << "Error: Node index out of bounds!" << std::endl;
                         }
