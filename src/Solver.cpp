@@ -63,7 +63,12 @@ Solver::SparseSystem Solver::Assembly() {
                     element_dof_values[cc + nodes_per_element]= nodeTag * dof_per_node + 1;
                     cc += 1;
                 }
-
+                std::cout<<"Desired Output:"<<std::endl;
+                std::cout<<inputReader_.getDesiredOutput()<<std::endl;
+                if (inputReader_.getDesiredOutput()=="all"){
+                    utils_.writeDataToFile(element_dofs,"Outputs/KTelement_dofs.txt",true);
+                    utils_.writeDataToFile(element_dof_values,"Outputs/KTelement_dof_values.txt",true);
+                }
                 Utils::IntegrationResult elementresult;
                 // if physics == 
                 std::cout << "element integration "<< elementTag << std::endl;
@@ -114,6 +119,7 @@ Solver::SparseSystem Solver::Assembly() {
         sparseMatrixColPtrs(i + 1) = nnz;
     }
     if (inputReader_.getDesiredOutput()=="all"){
+        std::cout<<"print all"<<std::endl;
         utils_.writeDataToFile(sparseMatrixRowIndices,"Outputs/KTsparseMatrixRowIndices.txt",true);
         utils_.writeDataToFile(sparseMatrixRowIndices,"Outputs/KTsparseMatrixRowIndices.txt",true);
         utils_.writeDataToFile(sparseMatrixColPtrs,"Outputs/KTsparseMatrixColPtrs.txt",true);
@@ -172,7 +178,15 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
 
     mat JM = shapeFunctionDerivatives.t() * coords.t(); // Fixed the loop indexing
                 std::cout << "JM." << std::endl;
+    if (inputReader_.getDesiredOutput()=="all"){
+        utils_.writeDataToFile(JM,"Outputs/KTJM.txt",true);
+        utils_.writeDataToFile(shapeFunctions,"Outputs/KTshapeFunctions.txt",true);
+        utils_.writeDataToFile(shapeFunctionDerivatives,"Outputs/KTshapeFunctionDerivatives.txt",true);
+        utils_.writeDataToFile(natcoords,"Outputs/KTnatcoords.txt",true);
+        utils_.writeDataToFile(coords,"Outputs/KTcoords.txt",true);
+        utils_.writeDataToFile(dofs,"Outputs/KTdofs.txt",true);
 
+    }
     //std::cout << "Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
     double detJ = arma::det(JM);
@@ -196,13 +210,16 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     for (uword i = 1; i < dofs.n_elem; i += 2) {
         Tee((i-1) / 2,1) = dofs(i);
     }
+    std::cout << "Tee" << std::endl;
 
     // Extract even-indexed elements into Vee
-    for (uword i = 0; i < 16; i += 2) {
+    for (uword i = 0; i < dofs.n_elem; i += 2) {
         Vee(i / 2,1) = dofs(i);
     }
+    std::cout << "Vee" << std::endl;
+
     double Th = arma::dot(shapeFunctions, dofs);
-    std::cout << "dof vecs." << std::endl;
+    std::cout << "Th" << std::endl;
 
     // Calculate je and qe
     arma::mat je = -De * shapeFunctionDerivatives.t() * Vee - Da * De * shapeFunctionDerivatives.t() * Tee;
