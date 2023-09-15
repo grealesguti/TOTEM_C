@@ -269,8 +269,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     int order,
     int elementTag,
     Mesh mesh,
-    arma::uvec element_dof_values,
-    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag)> func
+    arma::vec element_dof_values,
+    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag)> func
 ) {    
     Utils::IntegrationResult result; // Create a struct to hold KT and R
 
@@ -405,8 +405,8 @@ bool Utils::writeDataToFile(const T& data, const std::string& filename, bool app
     // Print "new line" to the file
     file << "New Data:" << std::endl;
     // Write the data to the file
-    if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec>) {
-        // For Armadillo dense data (vector or matrix)
+    if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec> || std::is_same_v<T, arma::uvec>) {
+        // For Armadillo dense data (vector, matrix, or uvec)
         data.save(file, arma::raw_ascii);
     } else if constexpr (std::is_same_v<T, arma::sp_mat>) {
         // For Armadillo sparse matrix (CSR format)
@@ -450,8 +450,10 @@ template bool Utils::writeDataToFile(const std::vector<double>& data, const std:
 // Explicit template specialization for std::vector<int>
 template bool Utils::writeDataToFile(const std::vector<int>& data, const std::string& filename, bool append);
 
-// Explicit template specialization for std::vector<int>
+// Explicit template specialization for arma::uvec
 template bool Utils::writeDataToFile(const arma::uvec& data, const std::string& filename, bool append);
+
+
 /////////////////////////////////////////////////////////////////////////////////////
 arma::mat Utils::calculate_T3(const arma::mat& nodes) { // the input is a 3x4 matrix containing the coords of each node in the columns.
 // LINK: http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-2/

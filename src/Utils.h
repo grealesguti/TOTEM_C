@@ -24,8 +24,8 @@ public:
         int order,
         int elementTag,
         Mesh mesh,
-        arma::uvec element_dof_values,
-        std::function<IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag)> func
+        arma::vec element_dof_values,
+        std::function<IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag)> func
     );
     arma::mat TransformCoordinates(const arma::mat& cooro);
         // Function to write an Armadillo matrix or vector to a file
