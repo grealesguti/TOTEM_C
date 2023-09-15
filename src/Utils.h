@@ -24,7 +24,8 @@ public:
         int order,
         int elementTag,
         Mesh mesh,
-        std::function<IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::mat& dofs)> func
+        arma::uvec element_dof_values,
+        std::function<IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag)> func
     );
     arma::mat TransformCoordinates(const arma::mat& cooro);
         // Function to write an Armadillo matrix or vector to a file
@@ -47,6 +48,7 @@ public:
     }
     static arma::mat calculate_T3(const arma::mat& nodes);
     arma::mat calculate_inverse_T3(const arma::mat& nodes);
+    static arma::sp_mat spmat_submat(const arma::sp_mat& spmatrix, const std::vector<int>& row_indices, const std::vector<int>& col_indices);
 
 private:
 bool writeflag_;

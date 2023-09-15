@@ -54,6 +54,9 @@ public:
     const double getCoordi(int i) const {        return coord[i];    }
     const int getelementNodeTagi(int i) const {        return elementNodeTags[i];    }
     const int getNodeTagi(int i) const {        return nodeTags[i];    }
+    const int getElementMaterial(int i) const {        return element_materials[i];    }
+    std::vector<int> getAllElementMaterials() const {        return element_materials;    }
+
     arma::mat getCoordinates(const std::vector<int>& nodeTags);
     void getElementInfo(int elementTag, std::vector<int> & nodeTags_el);
     void applyElementsMaterials();

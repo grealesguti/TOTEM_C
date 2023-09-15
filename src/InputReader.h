@@ -41,6 +41,11 @@ public:
     const std::string& getDesiredOutput() const {
         return DesiredOutput_;
     }
+
+    double getPropertyValue(int index, const std::string& key, bool& success) const;
+    std::string getMaterial_index(int index) const;
+    double getMaterialPropertyValue(int materialIndex, const std::string& propertyName) const;
+
     // OTHER METHODS //
     // Method to read Gmsh mesh file
     bool readGmshMesh();
@@ -51,6 +56,8 @@ private:
     std::map<std::pair<std::string, std::string>, double> boundaryConditions_;
     // Initialize a vector to store material indices for elements
     std::vector<std::size_t> elementMaterialIndices;
+    std::map<int, std::string> Material_index;
+
 };
 
 #endif // INPUTREADER_H

@@ -41,8 +41,8 @@ private:
     std::vector<double> soldofs_;
     arma::mat loadVector_;
     std::vector<int> freedofidxs_;
-    Utils::IntegrationResult thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs);
-    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs)> thermoelectricityintegrationFunction_;
+    Utils::IntegrationResult thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag);
+    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag)> thermoelectricityintegrationFunction_;
 
 };
 

@@ -2,24 +2,19 @@
 using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
-    : inputReader_(inputReader), mesh_(mesh), elements_() {
-    if(inputReader_.getDesiredOutput()=="all"){
-        utils_ = Utils(true);
-    }else{
-        utils_ = Utils(false);
-    }
-    // Get the number of nodes from the mesh
-    int numNodes = mesh_.getNumAllNodes();
+    : inputReader_(inputReader), mesh_(mesh), elements_(), utils_(), loadVector_(2 * mesh.getNumAllNodes(), 1) {
+    // Initialize Utils based on inputReader
+    utils_ = inputReader.getDesiredOutput() == "all" ? Utils(true) : Utils(false);
 
-    // Initialize the loadVector_ member with a size double the number of nodes
-    loadVector_.zeros(2 * numNodes, 1);
-    initialdofs_.resize(2 * numNodes);
+    // Initialize initialdofs_ based on the number of nodes
+    initialdofs_.resize(2 * mesh.getNumAllNodes());
 
-    // Initialize the integrationFunction_ using the assignment operator
+    // Initialize integrationFunction_ using a lambda function
     integrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, double value, int element) {
         return CteSurfBC(natcoords, coords, value, element);
     };
 
+    // Call boundaryConditions to perform any necessary setup
     boundaryConditions();
 }
 

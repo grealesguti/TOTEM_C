@@ -269,7 +269,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     int order,
     int elementTag,
     Mesh mesh,
-    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::mat& dofs)> func
+    arma::uvec element_dof_values,
+    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag)> func
 ) {    
     Utils::IntegrationResult result; // Create a struct to hold KT and R
 
@@ -286,17 +287,9 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     std::vector<int> nodeTags_el;
     mesh.getElementInfo(elementTag, nodeTags_el);
     arma::mat coordinates(3, nodeTags_el.size());
-    arma::mat coordinates_tr(3, nodeTags_el.size());
-    arma::mat element_dofs = arma::zeros<arma::mat>(16, 1);
+    coordinates=mesh.getCoordinates(nodeTags_el);
 
-        int cc = 0;
-        for (int nodeTag : nodeTags_el) {
-            element_dofs[cc] = nodeTag * dof_per_node;
-            element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
-            cc += 1;
-        }
     // get current dofs from elementdofs index, this is the input!!!
-
     this->getGaussWeightsAndPoints(order, weights, gaussPoints);
 
     if (weights.is_empty() || gaussPoints.is_empty()) {
@@ -312,7 +305,12 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
         result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
         return result;
     }
-
+    if(writeflag_==true){
+        Utils::writeDataToFile(nodeTags_el,"Outputs/KTNodeTags_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(coordinates,"Outputs/KTGaussCoords_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(gaussPoints,"Outputs/KTGaussPoints_"+std::to_string(elementTag)+".txt",true);
+        Utils::writeDataToFile(weights,"Outputs/KTGaussWeights_"+std::to_string(elementTag)+".txt",true);
+    }
     // Initialize result.KT and result.R to zero matrices of appropriate dimensions.
     if (dimension == 1) {
         // 1D integration using a single loop.
@@ -322,7 +320,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
 
         for (uword i = 0; i < weights.n_rows; ++i) {
             natcoords(0, 0) = gaussPoints(i, 0);
-            Utils::IntegrationResult localResult = func(natcoords, coordinates_tr,element_dofs );
+            Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag );
             Re += localResult.R * weights(i, 0);
             KTe += localResult.KT * weights(i, 0);
         }
@@ -340,7 +338,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
             for (uword j = 0; j < weights.n_rows; ++j) {
                 natcoords(0, 0) = gaussPoints(i, 0);
                 natcoords(1, 0) = gaussPoints(j, 0);
-                Utils::IntegrationResult localResult = func(natcoords, coordinates_tr,element_dofs);
+                Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag);
                 R += localResult.R * weights(i, 0) * weights(j, 0);
                 KT += localResult.KT * weights(i, 0) * weights(j, 0);
             }
@@ -366,7 +364,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
                         natcoords(0, 0) = gaussPoints(i, 0);
                         natcoords(1, 0) = gaussPoints(j, 0);
                         natcoords(2, 0) = gaussPoints(k, 0);
-                        Utils::IntegrationResult localResult = func(natcoords, coordinates_tr,element_dofs);
+                        Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag);
                         R += localResult.R * weights(i, 0) * weights(j, 0) * weights(k, 0);
                         KT += localResult.KT * weights(i, 0) * weights(j, 0) * weights(k, 0);
                     }
@@ -452,6 +450,8 @@ template bool Utils::writeDataToFile(const std::vector<double>& data, const std:
 // Explicit template specialization for std::vector<int>
 template bool Utils::writeDataToFile(const std::vector<int>& data, const std::string& filename, bool append);
 
+// Explicit template specialization for std::vector<int>
+template bool Utils::writeDataToFile(const arma::uvec& data, const std::string& filename, bool append);
 /////////////////////////////////////////////////////////////////////////////////////
 arma::mat Utils::calculate_T3(const arma::mat& nodes) { // the input is a 3x4 matrix containing the coords of each node in the columns.
 // LINK: http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-2/
@@ -506,4 +506,60 @@ arma::mat Utils::calculate_inverse_T3(const arma::mat& nodes) {
     arma::mat inverse_T3 = arma::inv(T3);
 
     return inverse_T3;
+}
+///////////////////////////////////////////////////////////////////////////////////////
+arma::sp_mat Utils::spmat_submat(const arma::sp_mat& spmatrix, const std::vector<int>& row_indices, const std::vector<int>& col_indices) {
+    // Validate input dimensions
+    if (row_indices.size() != col_indices.size()) {
+        throw std::invalid_argument("Input vectors must have the same size.");
+    }
+
+    // Get the number of rows and columns
+    const int num_rows = spmatrix.n_rows;
+    const int num_cols = spmatrix.n_cols;
+
+    // Create vectors to store CSR format data
+    std::vector<double> csr_values;
+    std::vector<int> csr_column_indices;
+    std::vector<int> csr_row_pointers;
+
+    // Initialize the first row pointer
+    csr_row_pointers.push_back(0);
+
+    // Loop through the rows
+    for (int i = 0; i < row_indices.size(); ++i) {
+        int row = row_indices[i];
+        int col = col_indices[i];
+
+        // Check if the row and column indices are within bounds
+        if (row < 0 || row >= num_rows || col < 0 || col >= num_cols) {
+            throw std::out_of_range("Row or column index out of bounds.");
+        }
+
+        // Find the corresponding element in the sparse matrix
+        double value = spmatrix(row, col);
+
+        // Skip zero values
+        if (value != 0.0) {
+            // Store the value and column index
+            csr_values.push_back(value);
+            csr_column_indices.push_back(col);
+        }
+
+        // Update the row pointer if we are moving to a new row
+        if (i + 1 < row_indices.size() && row_indices[i + 1] != row) {
+            csr_row_pointers.push_back(csr_values.size());
+        }
+    }
+
+    // Create the CSR format sparse matrix
+    arma::sp_mat csr_matrix(
+        arma::conv_to<arma::uvec>::from(csr_row_pointers),
+        arma::conv_to<arma::uvec>::from(csr_column_indices),
+        arma::vec(csr_values),
+        num_rows,
+        num_cols
+    );
+
+    return csr_matrix;
 }

@@ -12,13 +12,15 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
     freedofidxs_ = mesh_.GetFreedofsIdx();
 
     // Initialize the thermoelectricityintegrationFunction_ using the assignment operator
-    thermoelectricityintegrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs) -> Utils::IntegrationResult {
-        return thermoelectricityintegration(natcoords, coords, dofs);
+    thermoelectricityintegrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag) -> Utils::IntegrationResult {
+        return thermoelectricityintegration(natcoords, coords, dofs,elementTag);
     };
+    std::cout << "### SOLVER Initialized." << std::endl;
 
 }
 
 Solver::SparseSystem Solver::Assembly() {
+    std::cout << "### START ASSEMBLY." << std::endl;
     int nodes_per_element = 8; // Total number of nodes per element
     int dof_per_node = 2; // Assuming 2 degrees of freedom per node
     const std::vector<std::size_t>& elementTags = mesh_.getElementTags();
@@ -33,11 +35,11 @@ Solver::SparseSystem Solver::Assembly() {
     int totalmeshnodes = mesh_.getNumAllNodes();
     arma::uvec Full_Ra = arma::uvec(totalmeshnodes*dof_per_node, arma::fill::zeros);
 
-
     // Temporary matrices for the current element
     arma::mat element_Ra = arma::zeros<arma::mat>(16, 1);
     arma::mat element_KJ = arma::zeros<arma::mat>(16, 16);
     arma::uvec element_dofs = arma::uvec(16, arma::fill::zeros);
+    arma::uvec element_dof_values = arma::uvec(16, arma::fill::zeros);
     arma::uvec element_zeros = arma::uvec(16, arma::fill::zeros);
 
         //#pragma omp parallel num_threads(num_threads)
@@ -57,18 +59,39 @@ Solver::SparseSystem Solver::Assembly() {
                 for (int nodeTag : nodeTags_el) {
                     element_dofs[cc] = nodeTag * dof_per_node;
                     element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
+                    element_dof_values[cc] = nodeTag * dof_per_node;
+                    element_dof_values[cc + nodes_per_element]= nodeTag * dof_per_node + 1;
                     cc += 1;
                 }
-                Utils::IntegrationResult result;
-                result = utils_.gaussIntegrationK(2, 3, elementTag, mesh_, thermoelectricityintegrationFunction_);
 
-                arma::vec vector_KJ = arma::vectorise(result.KT);
-                //arma::uvec vector_Ra = arma::vectorise(result.R);
+                Utils::IntegrationResult elementresult;
+                // if physics == 
+                std::cout << "element integration "<< elementTag << std::endl;
+                elementresult = utils_.gaussIntegrationK(3, 5, elementTag, mesh_, element_dof_values, thermoelectricityintegrationFunction_);
+                std::cout << "element "<< elementTag<< " integrated." << std::endl;
 
-                larger_KJ.row(0) = vector_KJ.t();
-                //Full_Ra.subvec(element_dofs)+=vector_Ra;
+                arma::vec vector_KJ = arma::vectorise(elementresult.KT);
+                arma::vec vector_Ra = elementresult.R;
+                std::cout << "vector format." << std::endl;
+
+                if (inputReader_.getDesiredOutput()=="all"){
+                    utils_.writeDataToFile(elementresult.KT,"Outputs/KTintegration_elKT.txt",true);
+                    utils_.writeDataToFile(elementresult.R,"Outputs/KTintegration_elR.txt",true);
+                }
+                larger_KJ.row(elementIndex) = vector_KJ.t();
+                std::cout << "filled KJlarger." << std::endl;
+
+                // Use atomic addition for updating Full_Ra
+                //#pragma omp atomic
+                for (int i = 0; i < element_dofs.n_elem; i++) {
+                    Full_Ra[element_dofs[i]] += vector_Ra[i];
+                }
+                std::cout << "filled Ra." << std::endl;
+
                 arma::uvec vector_element_dofs = element_dofs.t();
                 larger_element_dofs.col(elementIndex) = vector_element_dofs;
+                std::cout << "filled dofs." << std::endl;
+
             }
         //}
 
@@ -90,15 +113,23 @@ Solver::SparseSystem Solver::Assembly() {
         }
         sparseMatrixColPtrs(i + 1) = nnz;
     }
-
+    if (inputReader_.getDesiredOutput()=="all"){
+        utils_.writeDataToFile(sparseMatrixRowIndices,"Outputs/KTsparseMatrixRowIndices.txt",true);
+        utils_.writeDataToFile(sparseMatrixRowIndices,"Outputs/KTsparseMatrixRowIndices.txt",true);
+        utils_.writeDataToFile(sparseMatrixColPtrs,"Outputs/KTsparseMatrixColPtrs.txt",true);
+        utils_.writeDataToFile(sparseMatrixData,"Outputs/KTsparseMatrixData.txt",true);
+    }
     // Create CSR sparse matrix
     arma::sp_mat KJ_sparse(sparseMatrixRowIndices, sparseMatrixColPtrs, sparseMatrixData, larger_KJ.n_rows, larger_KJ.n_cols);
     
     // reduce the system and store in the return structure
     SparseSystem result;
-    //result.KT_sparse_reduced=KJ_sparse(arma::uvec(freedofidxs_), arma::uvec(freedofidxs_));
-    //result.R_reduced=Full_Ra.subvec(freedofidxs_);;
-
+    // Convert std::vector<int> to arma::uvec
+    arma::uvec uVector = arma::conv_to<arma::uvec>::from(freedofidxs_);
+    result.KT_sparse_reduced=utils_.spmat_submat(KJ_sparse,freedofidxs_,freedofidxs_);
+    for (int i = 0; i < freedofidxs_.size(); i++) {
+                    result.R_reduced[i] += Full_Ra[freedofidxs_[i]];
+                }
     return result;
 }
 
@@ -106,14 +137,13 @@ Solver::SparseSystem Solver::Assembly() {
 /////////////////////////////////////////////////////////////////////////////
 
 
-Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs){
+Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::uvec& dofs, const int elementTag){
         Utils::IntegrationResult result; // Create a struct to hold KV and R
 
     // Define variables
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     arma::vec shapeFunctions(8,1);          // Shape functions as a 4x1 vector
     mat shapeFunctionDerivatives(8, 3); // Shape function derivatives
-    mat JM(3, 3);                       // Jacobian matrix
     // Define the integration result matrices
     arma::mat RT(8, 8, arma::fill::zeros);
     arma::mat RV(8, 1, arma::fill::zeros);
@@ -139,18 +169,25 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
-    for (uword i = 0; i < 3; ++i) {
-        for (uword j = 0; j < 3; ++j) {
-            JM(i, j) = dot(shapeFunctionDerivatives.col(i), coords.col(j)); // Fixed the loop indexing
-        }
-    }
+
+    mat JM = shapeFunctionDerivatives.t() * coords.t(); // Fixed the loop indexing
+                std::cout << "JM." << std::endl;
 
     //std::cout << "Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
     double detJ = arma::det(JM);
 
     // Extract material properties
-    double De=1, Da=1, Dk=1, Dde=0, Dda=0, Ddk=0;
+    int materialindex = mesh_.getElementMaterial(elementTag);
+    bool flag;
+    std::cout << "material index "<<materialindex << std::endl;
+
+    double De=inputReader_.getMaterialPropertyValue(materialindex,"ElectricalConductivity");
+    double Da=inputReader_.getMaterialPropertyValue(materialindex,"Seebeck");
+    double Dk=inputReader_.getMaterialPropertyValue(materialindex,"ThermalConductivity");
+
+    double Dde=0, Dda=0, Ddk=0;
+    std::cout << "materials " << De << " "<< Da<<" "<< Dk << std::endl;
 
     // Assuming 'dofs' is an Armadillo vector
     arma::mat Tee(8,1); // Vector for odd-indexed elements
@@ -165,29 +202,31 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
         Vee(i / 2,1) = dofs(i);
     }
     double Th = arma::dot(shapeFunctions, dofs);
+    std::cout << "dof vecs." << std::endl;
 
     // Calculate je and qe
-    arma::mat transposed = shapeFunctionDerivatives.t();
-    arma::mat negTransposed = -transposed;
-
-    arma::mat test = negTransposed * Vee;
-
     arma::mat je = -De * shapeFunctionDerivatives.t() * Vee - Da * De * shapeFunctionDerivatives.t() * Tee;
     arma::mat qe = Da * (shapeFunctions.t() * Tee) * je - Dk * shapeFunctionDerivatives.t() * Tee;
+    std::cout << "qe je." << std::endl;
 
     // Perform the necessary calculations here to compute djdt, djdv, dqdt, dqdv
     arma::mat djdt = -Da * De * shapeFunctionDerivatives.t()
                     - Dda * De * shapeFunctionDerivatives.t() * Tee * shapeFunctions.t()
                     - Dde * (shapeFunctionDerivatives.t() * Vee.t() + Da * shapeFunctionDerivatives.t() * Tee.t()) * shapeFunctions.t();
+    std::cout << "djdt" << std::endl;
 
     arma::mat djdv = -De * shapeFunctionDerivatives;
+    std::cout << "djdv" << std::endl;
 
     arma::mat dqdt = Da * Th * djdt + Da * je * shapeFunctions.t()
                     - Dk * shapeFunctionDerivatives.t()
                     + Dda * Th * je * shapeFunctions.t()
                     - Ddk * shapeFunctionDerivatives.t() * Tee * shapeFunctions.t();
+    std::cout << "dqdt" << std::endl;
 
     arma::mat dqdv = -Da * De * Th * shapeFunctionDerivatives;
+    std::cout << "dqdv" << std::endl;
+
     // Perform the integration for RT, RV, K11, K12, K21, K22
     RT += (-shapeFunctionDerivatives * qe + shapeFunctions * je.t() * shapeFunctionDerivatives.t() * Vee);
     RV += (-shapeFunctionDerivatives * je);
@@ -195,6 +234,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     K12 +=(shapeFunctionDerivatives * dqdv - shapeFunctions * (djdv.t() * shapeFunctionDerivatives.t() * Vee).t() - shapeFunctions * (je.t() * shapeFunctionDerivatives));
     K21 +=(shapeFunctionDerivatives * djdt);
     K22 +=(shapeFunctionDerivatives * djdv);
+    std::cout << "matrixes" << std::endl;
 
 
     //std::cout << "Calculate integrand. " << std::endl;
@@ -206,6 +246,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     // Initialize KV and RT matrices with zeros
     arma::mat KV(numRowsKJ, numColsKJ, arma::fill::zeros);
     arma::mat R(numRowsR, 1, arma::fill::zeros);
+    std::cout << "matrixes larger" << std::endl;
 
     // Fill in the KV matrix with K11, K12, K21, and K22
     KV.submat(0, 0, K11.n_rows - 1, K11.n_cols - 1) = K11;
@@ -216,10 +257,11 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     // Fill in the R matrix with RT and RV
     R.submat(0, 0, RT.n_rows - 1, 0) = RT;
     R.submat(RT.n_rows, 0, numRowsR - 1, 0) = RV;
+    std::cout << "matrixes larger filled" << std::endl;
 
     //std::cout << "integrand calculated " << std::endl;
-    result.R=R;
-    result.KT=KV;
+    result.R=R*detJ;
+    result.KT=KV*detJ;
     // Return the heat flow as a 4x1 Armadillo matrix
     return result;
 }

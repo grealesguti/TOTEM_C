@@ -38,21 +38,6 @@ bool InputReader::readFile() {
             setMeshFileName(meshFileName);       // Store the mesh file name in the class
             setMeshEntityName(entityName);           // Set the full mesh entity name
             // MATERIAL PROPERTIES
-        }
-        else if (keyword == "output") {
-            std::string outputKeyword; // Variable to store the following keyword
-
-            iss >> outputKeyword;
-
-            if (!iss) {
-                std::cerr << "Warning: Invalid output keyword." << std::endl;
-                continue;
-            } else {
-                std::cout << "Output Keyword: " << outputKeyword << std::endl;
-            }
-
-            // Store the output keyword in the class variable DesiredOutput_
-            setDesiredOutput(outputKeyword);
         }else if (keyword == "material") {
             std::string volumeName;
             iss >> volumeName;
@@ -63,6 +48,7 @@ bool InputReader::readFile() {
             }
 
             std::map<std::string, double> materialProperties;
+            int matIndex = 1;
             while (std::getline(inputFile, line)) {
                 if (line.empty() || line.find("##") == 0) {
                     break;
@@ -82,6 +68,10 @@ bool InputReader::readFile() {
             }
 
             MaterialProperties_[volumeName] = materialProperties;
+
+            Material_index[matIndex] = volumeName; // Store the index and name in Material_index map
+            std::cout<< "Index and material:" << matIndex<<" " <<Material_index[matIndex]<<std::endl;
+            ++matIndex;  // Increment the index for the next material
         }else if (keyword == "bc") {
             std::string boundaryName, surfaceName;
             double value;
@@ -144,3 +134,45 @@ bool InputReader::readGmshMesh() {
 }
 
 
+// Function to get a material property value by index and property namedouble InputReader::getMaterialPropertyValue(int matidx, const std::string& propertyName) const {
+double InputReader::getMaterialPropertyValue(int matidx, const std::string& propertyName) const {
+    // Find the material name corresponding to matidx
+    std::string materialName; // Declare materialName without & to avoid an uninitialized reference
+    for (const auto& entry : Material_index) {
+        int idx = entry.first;
+        if (idx == matidx) {
+            materialName = entry.second;
+            //std::cout << "Found material name: " << materialName << std::endl;
+            break; // No need to continue searching once we've found the materialName
+        }
+    }
+
+    // Check if materialName was found
+    if (materialName.empty()) {
+        // Handle the case where matidx doesn't correspond to any material
+        // You can throw an exception or return a default value as needed
+        // For now, let's return a special value like -1.0 to indicate an error
+        std::cout << "Material name not found for matidx: " << matidx << std::endl;
+        return -1.0;
+    }
+
+    // Search for the property value using materialName
+    for (const auto& entry : MaterialProperties_) {
+        std::string volumeName = entry.first;
+        if (volumeName == materialName) {
+            const std::map<std::string, double>& materialProperties = entry.second;
+            for (const auto& propertyEntry : materialProperties) {
+                if (propertyEntry.first == propertyName) {
+                    //std::cout << "Found property value: " << propertyEntry.second << std::endl;
+                    return propertyEntry.second;
+                }
+            }
+        }
+    }
+
+    // Handle the case where propertyName doesn't correspond to any property
+    // You can throw an exception or return a default value as needed
+    // For now, let's return a special value like -1.0 to indicate an error
+    std::cout << "Property not found for propertyName: " << propertyName << std::endl;
+    return -1.0;
+}
