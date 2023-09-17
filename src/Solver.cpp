@@ -9,6 +9,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
     // Initialize the loadVector_ member with a size double the number of nodes
     loadVector_= bcinit_.getloadVector();
     soldofs_.resize(2 * numNodes);
+    soldofs_= bcinit_.getAllInitialDof();
     freedofidxs_ = mesh_.GetFreedofsIdx();
 
     // Initialize the thermoelectricityintegrationFunction_ using the assignment operator
@@ -21,26 +22,42 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 
 Solver::SparseSystem Solver::Assembly() {
     std::cout << "### START ASSEMBLY." << std::endl;
-    int nodes_per_element = 8; // Total number of nodes per element
-    int dof_per_node = 2; // Assuming 2 degrees of freedom per node
+    int dof_per_node;
+    if(inputReader_.getPhysics()=="thermoelectricity"){
+        dof_per_node = 2;
+    }else{
+        dof_per_node = 2;// by default
+    } 
     const std::vector<std::size_t>& elementTags = mesh_.getElementTags();
     std::size_t num_of_elements = elementTags.size();
 
+    std::size_t elementTag = elementTags[0];    std::vector<int> nodeTags_el;
+    int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
+    // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
+    int nodes_per_element=20;// DEFAULT
+    if(etype==5){// Hexahedral 8 node element
+        nodes_per_element = 8; // Total number of nodes per element
+    }else if(etype==12){// Hexahedral 20 node element
+        nodes_per_element = 20; // Total number of nodes per element
+    }
+    int num_dofs_per_element = nodes_per_element*dof_per_node;
+    std::cout<<"element type: "<< etype<<"nodes per element "<<nodes_per_element<<" num_dofs_per_element "<<num_dofs_per_element<<std::endl;
+
     // Initialize larger matrices for KJ and Ra
-    arma::mat larger_KJ(16*16, num_of_elements, arma::fill::zeros);
-    arma::mat larger_Ra(16, num_of_elements, arma::fill::zeros);
-    arma::umat larger_element_dofs(16, num_of_elements, arma::fill::zeros);
+    arma::mat larger_KJ(num_dofs_per_element*num_dofs_per_element, num_of_elements, arma::fill::zeros);
+    arma::mat larger_Ra(num_dofs_per_element, num_of_elements, arma::fill::zeros);
+    arma::umat larger_element_dofs(num_dofs_per_element, num_of_elements, arma::fill::zeros);
 
     // Full Residual vector
     int totalmeshnodes = mesh_.getNumAllNodes();
     arma::vec Full_Ra = arma::vec(totalmeshnodes*dof_per_node, arma::fill::zeros);
 
     // Temporary matrices for the current element
-    arma::mat element_Ra = arma::zeros<arma::mat>(16, 1);
-    arma::mat element_KJ = arma::zeros<arma::mat>(16, 16);
-    arma::uvec element_dofs = arma::uvec(16, arma::fill::zeros);
-    arma::vec element_dof_values = arma::vec(16, arma::fill::zeros);
-    arma::uvec element_zeros = arma::uvec(16, arma::fill::zeros);
+    arma::mat element_Ra = arma::zeros<arma::mat>(num_dofs_per_element, 1);
+    arma::mat element_KJ = arma::zeros<arma::mat>(num_dofs_per_element, num_dofs_per_element);
+    arma::uvec element_dofs = arma::uvec(num_dofs_per_element, arma::fill::zeros);
+    arma::vec element_dof_values = arma::vec(num_dofs_per_element, arma::fill::zeros);
+    arma::uvec element_zeros = arma::uvec(num_dofs_per_element, arma::fill::zeros);
 
         //#pragma omp parallel num_threads(num_threads)
         //{
@@ -53,17 +70,17 @@ Solver::SparseSystem Solver::Assembly() {
 
                 // Rest of your loop code remains the same
                 std::vector<int> nodeTags_el;
-                mesh_.getElementInfo(elementTag, nodeTags_el);
-
+                int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
+                //std::cout<<"element type: "<< etype<<"nodes per element "<<nodes_per_element<<std::endl;
                 int cc = 0;
                 for (int nodeTag : nodeTags_el) {
                     element_dofs[cc] = nodeTag * dof_per_node;
                     element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
-                    element_dof_values[cc] = bcinit_.getInitialDof( nodeTag * dof_per_node);
-                    element_dof_values[cc + nodes_per_element]= bcinit_.getInitialDof( nodeTag * dof_per_node + 1);
+                    element_dof_values[cc] = soldofs_[ nodeTag * dof_per_node];
+                    element_dof_values[cc + nodes_per_element]= soldofs_[ nodeTag * dof_per_node + 1];
                     cc += 1;
                 }
-                std::cout<<"Desired Output:"<<std::endl;
+                std::cout<<"-Desired Output:"<<std::endl;
                 std::cout<<inputReader_.getDesiredOutput()<<std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
                     utils_.writeDataToFile(nodeTags_el,"Outputs/KTnodeTags_el.txt",true);
@@ -71,36 +88,37 @@ Solver::SparseSystem Solver::Assembly() {
                     utils_.writeDataToFile(element_dof_values,"Outputs/KTelement_dof_values.txt",true);
                 }
                 // if physics == 
-                std::cout << "element integration "<< elementTag << std::endl;
+                std::cout << "-element integration "<< elementTag << std::endl;
                 Utils::IntegrationResult elementresult = utils_.gaussIntegrationK(3, 3, elementTag, mesh_, element_dof_values, thermoelectricityintegrationFunction_);
-                std::cout << "element "<< elementTag<< " integrated." << std::endl;
+                std::cout << "-element "<< elementTag<< " integrated." << std::endl;
 
                 arma::vec vector_KJ = arma::vectorise(elementresult.KT);
                 arma::vec vector_Ra = elementresult.R;
-                std::cout << "vector format." << std::endl;
+                std::cout << "-vector format." << std::endl;
 
                 if (inputReader_.getDesiredOutput()=="all"){
+                    utils_.writeDataToFile(elementresult.KT,"Outputs/KTintegration_elKTnovector.txt",true);
                     utils_.writeDataToFile(vector_KJ,"Outputs/KTintegration_elKT.txt",true);
                     utils_.writeDataToFile(elementresult.R,"Outputs/KTintegration_elR.txt",true);
                 }
                 larger_KJ.col(elementIndex) = vector_KJ;
-                std::cout << "filled KJlarger." << std::endl;
+                std::cout << "-filled KJlarger." << std::endl;
 
                 // Use atomic addition for updating Full_Ra
                 //#pragma omp atomic
                 for (int i = 0; i < element_dofs.n_elem; i++) {
                     Full_Ra[element_dofs[i]] += vector_Ra[i];
                 }
-                std::cout << "filled Ra." << std::endl;
+                std::cout << "-filled Ra." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
                     utils_.writeDataToFile(larger_KJ,"Outputs/KTintegration_elKTlarger.txt",true);
                     utils_.writeDataToFile(Full_Ra,"Outputs/KTintegration_elRa.txt",true);
                 }
                 larger_element_dofs.col(elementIndex) = element_dofs;
-                std::cout << "filled dofs." << std::endl;
+                std::cout << "-filled dofs." << std::endl;
 
             }
-              std::cout << "finished loop." << std::endl;
+              std::cout << "-finished loop." << std::endl;
 
         //}
                 if (inputReader_.getDesiredOutput()=="all"){
@@ -110,17 +128,17 @@ Solver::SparseSystem Solver::Assembly() {
                 }
     // Create a vector to store Eigen triplets
     std::vector<Eigen::Triplet<double>> triplets;
-    triplets.reserve(16 * 16 * num_of_elements); // Reserve space to avoid reallocation
+    triplets.reserve(num_dofs_per_element * num_dofs_per_element * num_of_elements); // Reserve space to avoid reallocation
 
     // Iterate over the 2x2 matrices and add their entries to the Triplets vector
         for (int i = 0; i < num_of_elements; i++) {
-            for (int row = 0; row < 16; row++) {
-                for (int col = 0; col < 16; col++) {
+            for (int row = 0; row < num_dofs_per_element; row++) {
+                for (int col = 0; col < num_dofs_per_element; col++) {
                         int dof_row = larger_element_dofs(row, i);
                         int dof_col = larger_element_dofs(col, i);
                     try {
                         // Check bounds before accessing elements
-                        triplets.emplace_back(dof_row-2, dof_col-2, larger_KJ( row * 16 + col,i)); // -1 due to start index of 0
+                        triplets.emplace_back(dof_row-2, dof_col-2, larger_KJ( row * num_dofs_per_element + col,i)); // -1 due to start index of 0
 
                     } catch (const std::out_of_range& e) {
                         // Handle the out-of-range exception here (e.g., print an error message).
@@ -134,13 +152,13 @@ Solver::SparseSystem Solver::Assembly() {
                 if (inputReader_.getDesiredOutput()=="all"){
                     utils_.writeDataToFile(triplets,"Outputs/KTintegration_triplets.txt",true);
                 }
-  std::cout << "triplets made." << std::endl;
+  std::cout << "-triplets made." << std::endl;
 
   // Create the sparse matrix and set its values from the Triplets vector
   Eigen::SparseMatrix<double> KsparseMatrix(mesh_.getNumAllNodes()*2, mesh_.getNumAllNodes()*2);
-  std::cout << "init sparse. " <<mesh_.getNumAllNodes()*2 << std::endl;
+  std::cout << "-init sparse. " <<mesh_.getNumAllNodes()*2 << std::endl;
   KsparseMatrix.setFromTriplets(triplets.begin(), triplets.end());
-  std::cout << "made Sparse from eigen." << std::endl;
+  std::cout << "-made Sparse from eigen." << std::endl;
     // Create CSR sparse matrix
 
     
@@ -148,14 +166,14 @@ Solver::SparseSystem Solver::Assembly() {
     SparseSystem result;
     // Convert std::vector  <int> to arma::uvec
     result.KsubMatrix =  Solver::reduceSystem(KsparseMatrix);
-    std::cout << " K Submatrix retrieved." << std::endl;
+    std::cout << " -K Submatrix retrieved." << std::endl;
     // Resize the vector to the desired size and initialize with zeros
     result.R_reduced.resize(freedofidxs_.size(), 0.0);
     for (int i = 0; i < freedofidxs_.size(); i++) {
-                    result.R_reduced[i] += Full_Ra[freedofidxs_[i]];
+                    result.R_reduced[i] = Full_Ra[freedofidxs_[i]];
     }
 
-    std::cout << " R Submatrix retrieved." << std::endl;
+    std::cout << " -R Submatrix retrieved." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
                     utils_.writeDataToFile(result.KsubMatrix,"Outputs/KTintegration_reducedK.txt",true);
                     utils_.writeDataToFile(result.R_reduced,"Outputs/KTintegration_reducedRa.txt",true);
@@ -169,18 +187,32 @@ Solver::SparseSystem Solver::Assembly() {
 
 Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag){
         Utils::IntegrationResult result; // Create a struct to hold KV and R
-
+    std::vector<int> nodeTags_el1;
+    int elementTag1=elementTag;
+    int etype = mesh_.getElementInfo(elementTag1, nodeTags_el1);
+    // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
+    int nodes_per_element;
+    if(etype==5){// Hexahedral 8 node element
+        nodes_per_element = 8; // Total number of nodes per element
+    }else if(etype==12){// Hexahedral 20 node element
+        nodes_per_element = 20; // Total number of nodes per element
+    }else {// Hexahedral 20 node element DEFAULT
+        // ADD WARNING
+        nodes_per_element = 20; // Total number of nodes per element
+    }   
+    int dofs_per_node = dofs.size()/nodes_per_element;
+    //std::cout<< "nodes per element "<<nodes_per_element<< "dofs"<<dofs_per_node<<std::endl;
     // Define variables
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
-    arma::vec shapeFunctions(8,1);          // Shape functions as a 4x1 vector
-    arma::mat shapeFunctionDerivatives(8, 3); // Shape function derivatives
+    arma::vec shapeFunctions(nodes_per_element,1);          // Shape functions as a 4x1 vector
+    arma::mat shapeFunctionDerivatives(nodes_per_element, 3); // Shape function derivatives
     // Define the integration result matrices
-    arma::mat RT(8, 1, arma::fill::zeros);
-    arma::mat RV(8, 1, arma::fill::zeros);
-    arma::mat K11(8, 8, arma::fill::zeros);
-    arma::mat K12(8, 8, arma::fill::zeros);
-    arma::mat K21(8, 8, arma::fill::zeros);
-    arma::mat K22(8, 8, arma::fill::zeros);
+    arma::mat RT(nodes_per_element, 1, arma::fill::zeros);
+    arma::mat RV(nodes_per_element, 1, arma::fill::zeros);
+    arma::mat K11(nodes_per_element, nodes_per_element, arma::fill::zeros);
+    arma::mat K12(nodes_per_element, nodes_per_element, arma::fill::zeros);
+    arma::mat K21(nodes_per_element, nodes_per_element, arma::fill::zeros);
+    arma::mat K22(nodes_per_element, nodes_per_element, arma::fill::zeros);
 
     //std::cout << "Extract natural coordinates. " << std::endl;
     double xi=0, eta=0, zeta=0;
@@ -229,12 +261,12 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "materials " << De << " "<< Da<<" "<< Dk << std::endl;
 
     // Assuming 'dofs' is an Armadillo vector
-    arma::mat Tee(8,1); // Vector for odd-indexed elements
-    arma::mat Vee(8,1); // Vector for even-indexed elements
+    arma::mat Tee(nodes_per_element,1); // Vector for odd-indexed elements
+    arma::mat Vee(nodes_per_element,1); // Vector for even-indexed elements
     // Extract odd-indexed elements into Tee
-    for (uword i = 0; i < 8; i ++) {
+    for (uword i = 0; i < nodes_per_element; i ++) {
         Tee(i) = dofs(i);
-        Vee(i) = dofs(i+8);
+        Vee(i) = dofs(i+nodes_per_element);
     }
     //std::cout << "Tee,Vee" << std::endl;
     //std::cout << "Vee" << std::endl;
@@ -335,20 +367,19 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
 ///////////////////////////////////////////////////////////////////
 
 Eigen::SparseMatrix<double> Solver::reduceSystem(const Eigen::SparseMatrix<double>& K) {
-            std::cout << "Reducing system " << std::endl;
+            std::cout << "-Reducing system " << std::endl;
 
     int numDofs = K.rows();
     int numFixedDofs = freedofidxs_.size(); // Assuming freedofidx_ is a private member variable
-            std::cout << "freedofs size:  " << numFixedDofs << std::endl;
-            std::cout << "Krows  " << numDofs << std::endl;
+            std::cout << "-freedofs size:  " << numFixedDofs << std::endl;
+            std::cout << "-Krows  " << numDofs << std::endl;
 
     // Create the mapping from original degrees of freedom to reduced degrees of freedom
     std::vector<int> dofMap(numDofs, -1);
     for (int i = 0; i < numFixedDofs; i++) {
-            std::cout << freedofidxs_[i] << " "<<i<< std::endl;
         dofMap[freedofidxs_[i]] = i;
     }
-            std::cout << "dofmap " << std::endl;
+            std::cout << "-dofmap " << std::endl;
 
     // Create the reduced sparse matrix
     Eigen::SparseMatrix<double> reducedK(numFixedDofs, numFixedDofs);
@@ -361,7 +392,7 @@ Eigen::SparseMatrix<double> Solver::reduceSystem(const Eigen::SparseMatrix<doubl
             }
         }
     }
-            std::cout << "loop " << std::endl;
+            std::cout << "-loop " << std::endl;
 
     reducedK.makeCompressed();
 
@@ -403,92 +434,43 @@ Eigen::VectorXd Solver::solveSparseSystem(const SparseSystem& system) {
 /*
 // make another function only as solver that takes the assembly and can choose btw modified NR, or normal and returns successive errors etc...
 // This is the function to call from main after initialization of the class. This function also identifies the physics to use
-
-
-// Te, Ve defined in Solver, need function to extract them from node tags
-// matvs defined in Mesh
-// Introduce natural and overall coords
-// xx stored in Mesh
-// penalty values stored in Input
-// numnodes initially 8 to linear, possible to read from gmsh, type of element
-std::tuple<mat, mat> CreateElementIntegrationFunction(const mat& cooro, const mat& sysv)  {
-    return [](const mat& naturalCoords, const mat& elementCoords) -> mat {
-        // Extract natural coordinates
-        double xi1 = naturalCoords(0);
-        double xi2 = naturalCoords(1);
-        double xi3 = naturalCoords(2);
-
-        // Extract element coordinates
-        mat cooro = elementCoords;
-
-        // Initialize matrices based on numNodesPerElement
-        mat N = zeros<mat>(numNodesPerElement, 1);
-        mat dShape = zeros<mat>(numNodesPerElement, 3);
-        mat matp = zeros<mat>(numNodesPerElement, numNodesPerElement); // Adjust dimensions based on your problem
-        // Initialize other material-related matrices based on your problem
-
-        // Initialize other matrices (K11, K12, K21, K22, RT, RV) based on your problem's requirements
-        mat K11 = zeros<mat>(numNodesPerElement, numNodesPerElement);
-        mat K12 = zeros<mat>(numNodesPerElement, numNodesPerElement);
-        mat K21 = zeros<mat>(numNodesPerElement, numNodesPerElement);
-        mat K22 = zeros<mat>(numNodesPerElement, numNodesPerElement);
-        mat RT = zeros<mat>(numNodesPerElement, 1);
-        mat RV = zeros<mat>(numNodesPerElement, 1);
-
-        // Get shape functions N and their derivatives dShape
-        mat N; // Calculate N based on xi1, xi2, and xi3
-        mat dShape; // Calculate dShape based on xi1, xi2, and xi3
-
-        // Calculate Jacobian matrix JM and its inverse Jacinv
-        mat JM = dShape * cooro;
-        mat Jacinv = inv(JM);
-
-        // Calculate DN and DN0
-        mat DN = Jacinv * dShape;
-        mat DN0 = DN.t();
-
-        // Extract values from elementCoords
-        mat Tee = cooro; // Assuming Tee represents some temperature values
-        mat Vee = cooro; // Assuming Vee represents some other values
-
-        // Calculate Th
-        double Th = dot(N, Tee);
-
-        // Define material properties
-        mat matp, matv, localsys, sysv, xx, p, seebp, rhop; // Define these matrices
-        mat De, Da, Dk, Dde, Dda, Ddk; // Calculate De, Da, Dk, Dde, Dda, and Ddk based on material properties
-
-        // Initialize Wp and detJ
-        double Wp = 0.0;
-        double detJ = det(JM);
-
-        // Calculate je
-        mat je = -De * DN0.t() * Vee - Da * De * DN0.t() * Tee;
-
-        // Calculate qe
-        mat qe = Da * (N.t() * Tee) * je - Dk * DN0.t() * Tee;
-
-        // Calculate djdt, djdv, dqdt, dqdv
-        mat djdt = -Da * De * DN0.t() - Dda * De * DN0.t() * Tee * N.t() - Dde * (DN0.t() * Vee + Da * DN0.t() * Tee) * N.t();
-        mat djdv = -De * DN0.t();
-        mat dqdt = Da * Th * djdt + Da * je * N.t() - Dk * DN0.t() + Dda * Th * je * N.t() - Ddk * DN0.t() * Tee * N.t();
-        mat dqdv = -Da * De * Th * DN0.t();
-
-        // Calculate RT and RV
-        RT = detJ * Wp * (-(DN0 * qe) + (N * je) * (DN0.t() * Vee));
-        RV = detJ * Wp * (-DN0 * je);
-
-        // Calculate K11, K12, K21, K22
-        K11 = detJ * Wp * (DN0 * dqdt - N * (djdt.t() * DN0.t() * Vee));
-        K12 = detJ * Wp * (DN0 * dqdv - N * (djdv.t() * DN0.t() * Vee) - N * (je.t() * DN0));
-        K21 = detJ * Wp * (DN0 * djdt);
-        K22 = detJ * Wp * (DN0 * djdv);
-
-        // Construct the elemental Jacobian KJ and Residues R
-        mat KJ = join_horiz(join_vert(K11, K21), join_vert(K12, K22));
-        mat R = join_vert(RT.col(0), RV.col(0));
-
-        return std::make_tuple(KJ, R);
-    };
-}
 */
+double Solver::runNewtonRaphson() {
+    // Initialize some parameters and initial guess
+    double tolerance = 1e-6;
+    int maxIterations = 5;
+    if (inputReader_.getDesiredOutput()=="all"){
+            utils_.writeDataToFile(soldofs_,"Outputs/NR_soldofs_"+std::to_string(0)+".txt",true);
+    }
+    for (int iter = 0; iter < maxIterations; ++iter) {
+        // Assembly the system matrix
+        SparseSystem system = Assembly();
+
+        // Solve the system using the tangential matrix and residual: KT*dU=R->dU
+        Eigen::VectorXd delta_degreesoffreedom = solveSparseSystem(system);
+
+        // Update solution
+        for(int i=0; i<freedofidxs_.size();i++){
+            soldofs_[freedofidxs_[i]]+=delta_degreesoffreedom[i];
+        }
+
+        // Calculate the residual (error);
+        Eigen::VectorXd eigenR_reduced = Eigen::Map<Eigen::VectorXd>(system.R_reduced.data(), system.R_reduced.size());        // Convert std::vector to Eigen::VectorXd
+        double residual = eigenR_reduced.norm();// Calculate the norm
+        std::cout<< "### NR. Iteration "<< iter <<" residual "<< residual<< std::endl;
+        // Check for convergence
+        if (inputReader_.getDesiredOutput()=="all"){
+            utils_.writeDataToFile(soldofs_,"Outputs/NR_soldofs_"+std::to_string(iter+1)+".txt",true);
+            utils_.writeDataToFile(delta_degreesoffreedom,"Outputs/NR_delta_degreesoffreedom_"+std::to_string(iter)+".txt",true);
+        }
+        if (residual < tolerance) {
+            // Converged, return both the solution and the final residual
+            std::cout<< "### NR. CONVERGED "<< std::endl;
+            return residual;
+        }
+
+    }
+
+    // If we reach here, the Newton-Raphson method did not converge
+    throw std::runtime_error("Newton-Raphson did not converge.");
+}

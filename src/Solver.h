@@ -26,6 +26,9 @@ public:
     SparseSystem Assembly();
     Eigen::SparseMatrix<double> reduceSystem(const Eigen::SparseMatrix<double>& K);
     Eigen::VectorXd solveSparseSystem(const SparseSystem& system);
+    double runNewtonRaphson(); // Return both the solution and final residual
+    std::vector<double> getAllSolDofs() const {return soldofs_;};
+    double getAllSolDof(int i) const {return soldofs_[i];};
 
     //arma::mat DirectSolver(const arma::mat&,const arma::mat& coords, double heatvalue);
     //arma::mat NewtonRaphson(const arma::mat&,const arma::mat& coords, double heatvalue);

@@ -494,13 +494,14 @@ void Mesh::InitMeshEntityElements() {
     }
 
 
-    void Mesh::getElementInfo(int elementTag, std::vector<int> & nodeTags_el) {
+    int Mesh::getElementInfo(int elementTag, std::vector<int> & nodeTags_el) {
         int dim, entityTag, elementType;
         std::vector<std::size_t> nodeTags_size_t;
         gmsh::model::mesh::getElement(elementTag, elementType, nodeTags_size_t, dim, entityTag);
 
         // Convert the std::vector<std::size_t> to std::vector<int>
         nodeTags_el.assign(nodeTags_size_t.begin(), nodeTags_size_t.end());
+        return elementType;
     }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

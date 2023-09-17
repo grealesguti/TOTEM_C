@@ -58,7 +58,7 @@ public:
     std::vector<int> getAllElementMaterials() const {        return element_materials;    }
 
     arma::mat getCoordinates(const std::vector<int>& nodeTags);
-    void getElementInfo(int elementTag, std::vector<int> & nodeTags_el);
+    int getElementInfo(int elementTag, std::vector<int> & nodeTags_el);
     void applyElementsMaterials();
     // Declaration for getMaterialPropertyForElement function
     double getMaterialPropertyForElement(std::size_t elementIndex, const std::string& propertyName) const;

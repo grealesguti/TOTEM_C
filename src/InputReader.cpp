@@ -52,6 +52,20 @@ bool InputReader::readFile() {
 
             // Store the output keyword in the class variable DesiredOutput_
             setDesiredOutput(outputKeyword);
+        }else if (keyword == "physics") {
+            std::string outputKeyword; // Variable to store the following keyword
+
+            iss >> outputKeyword;
+
+            if (!iss) {
+                std::cerr << "Warning: Invalid output keyword." << std::endl;
+                continue;
+            } else {
+                std::cout << "Output Keyword: " << outputKeyword << std::endl;
+            }
+
+            // Store the output keyword in the class variable DesiredOutput_
+            physics_=outputKeyword;
         }else if (keyword == "material") {
             std::string volumeName;
             iss >> volumeName;

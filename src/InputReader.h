@@ -41,7 +41,10 @@ public:
     const std::string& getDesiredOutput() const {
         return DesiredOutput_;
     }
-
+    // Getter method for DesiredOutput_
+    const std::string& getPhysics() const {
+        return physics_;
+    }
     double getPropertyValue(int index, const std::string& key, bool& success) const;
     std::string getMaterial_index(int index) const;
     double getMaterialPropertyValue(int materialIndex, const std::string& propertyName) const;
@@ -51,7 +54,7 @@ public:
     bool readGmshMesh();
 private:
     std::string filename_;
-    std::string meshFileName_,MeshEntityName_,DesiredOutput_; // Variable to store the mesh file name
+    std::string meshFileName_,MeshEntityName_,DesiredOutput_,physics_; // Variable to store the mesh file name
     std::map<std::string, std::map<std::string, double>> MaterialProperties_;
     std::map<std::pair<std::string, std::string>, double> boundaryConditions_;
     // Initialize a vector to store material indices for elements

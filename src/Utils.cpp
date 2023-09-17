@@ -431,7 +431,12 @@ bool Utils::writeDataToFile(const T& data, const std::string& filename, bool app
             }
             file << std::endl;
         }
-    }    else {
+    }else if constexpr (std::is_same_v<T, Eigen::VectorXd>) {
+        // For Eigen::VectorXd
+        for (int i = 0; i < data.size(); ++i) {
+            file << data(i) << " ";
+        }
+    }       else {
         // Handle unsupported types here
         std::cerr << "Error: Unsupported data type." << std::endl;
         return false;
@@ -475,6 +480,9 @@ template bool Utils::writeDataToFile<Eigen::SparseMatrix<double>>(const Eigen::S
 
 // Explicit template specialization for std::vector<Eigen::Triplet<double>>
 template bool Utils::writeDataToFile(const std::vector<Eigen::Triplet<double>>& data, const std::string& filename, bool append);
+
+// Explicit template specialization for Eigen::VectorXd
+template bool Utils::writeDataToFile(const Eigen::VectorXd& data, const std::string& filename, bool append);
 
 /////////////////////////////////////////////////////////////////////////////////////
 arma::mat Utils::calculate_T3(const arma::mat& nodes) { // the input is a 3x4 matrix containing the coords of each node in the columns.
