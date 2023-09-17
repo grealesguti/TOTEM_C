@@ -405,7 +405,7 @@ bool Utils::writeDataToFile(const T& data, const std::string& filename, bool app
     // Print "new line" to the file
     file << "New Data:" << std::endl;
     // Write the data to the file
-    if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec> || std::is_same_v<T, arma::uvec>) {
+    if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec> || std::is_same_v<T, arma::uvec>|| std::is_same_v<T, arma::umat>) {
         // For Armadillo dense data (vector, matrix, or uvec)
         data.save(file, arma::raw_ascii);
     } else if constexpr (std::is_same_v<T, arma::sp_mat>) {
@@ -417,7 +417,21 @@ bool Utils::writeDataToFile(const T& data, const std::string& filename, bool app
         for (const auto& item : data) {
             file << item << " ";
         }
-    } else {
+    } else if constexpr (std::is_same_v<T, std::vector<Eigen::Triplet<double>>>) {
+            // For std::vector<Eigen::Triplet<double>> (sparse matrix in triplet format)
+            for (const auto& triplet : data) {
+                file << triplet.row() << " " << triplet.col() << " " << triplet.value() << std::endl;
+            }
+    } else if constexpr (std::is_same_v<T, Eigen::SparseMatrix<double>>) {
+        // For Eigen sparse matrix (you may need to adjust this based on the actual Eigen sparse matrix type you are using)
+        // Write Eigen sparse matrix to file in a custom format
+        for (int i = 0; i < data.rows(); ++i) {
+            for (int j = 0; j < data.cols(); ++j) {
+                file << data.coeff(i, j) << " ";
+            }
+            file << std::endl;
+        }
+    }    else {
         // Handle unsupported types here
         std::cerr << "Error: Unsupported data type." << std::endl;
         return false;
@@ -453,6 +467,14 @@ template bool Utils::writeDataToFile(const std::vector<int>& data, const std::st
 // Explicit template specialization for arma::uvec
 template bool Utils::writeDataToFile(const arma::uvec& data, const std::string& filename, bool append);
 
+// Explicit template specialization for arma::umat
+template bool Utils::writeDataToFile(const arma::umat& data, const std::string& filename, bool append);
+
+// Explicit template specialization for arma::umat
+template bool Utils::writeDataToFile<Eigen::SparseMatrix<double>>(const Eigen::SparseMatrix<double>& data, const std::string& filename, bool append);
+
+// Explicit template specialization for std::vector<Eigen::Triplet<double>>
+template bool Utils::writeDataToFile(const std::vector<Eigen::Triplet<double>>& data, const std::string& filename, bool append);
 
 /////////////////////////////////////////////////////////////////////////////////////
 arma::mat Utils::calculate_T3(const arma::mat& nodes) { // the input is a 3x4 matrix containing the coords of each node in the columns.

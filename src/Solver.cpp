@@ -29,7 +29,7 @@ Solver::SparseSystem Solver::Assembly() {
     // Initialize larger matrices for KJ and Ra
     arma::mat larger_KJ(16*16, num_of_elements, arma::fill::zeros);
     arma::mat larger_Ra(16, num_of_elements, arma::fill::zeros);
-    arma::umat larger_element_dofs(8, num_of_elements, arma::fill::zeros);
+    arma::umat larger_element_dofs(16, num_of_elements, arma::fill::zeros);
 
     // Full Residual vector
     int totalmeshnodes = mesh_.getNumAllNodes();
@@ -96,48 +96,69 @@ Solver::SparseSystem Solver::Assembly() {
                     utils_.writeDataToFile(larger_KJ,"Outputs/KTintegration_elKTlarger.txt",true);
                     utils_.writeDataToFile(Full_Ra,"Outputs/KTintegration_elRa.txt",true);
                 }
-                arma::uvec vector_element_dofs = element_dofs.t();
-                larger_element_dofs.col(elementIndex) = vector_element_dofs;
+                larger_element_dofs.col(elementIndex) = element_dofs;
                 std::cout << "filled dofs." << std::endl;
 
             }
+              std::cout << "finished loop." << std::endl;
+
         //}
+                if (inputReader_.getDesiredOutput()=="all"){
+                    utils_.writeDataToFile(larger_element_dofs,"Outputs/KTintegration_larger_element_dofs.txt",true);
+                    utils_.writeDataToFile(larger_KJ,"Outputs/KTintegration_elKTlargerFinal.txt",true);
+                    utils_.writeDataToFile(Full_Ra,"Outputs/KTintegration_elRaFinal.txt",true);
+                }
+    // Create a vector to store Eigen triplets
+    std::vector<Eigen::Triplet<double>> triplets;
+    triplets.reserve(16 * 16 * num_of_elements); // Reserve space to avoid reallocation
 
-    // Create CSR sparse matrix from larger_KJ and larger_element_dofs
-    arma::mat sparseMatrixData(larger_KJ.n_elem, 1);
-    arma::uvec sparseMatrixRowIndices(larger_KJ.n_elem);
-    arma::uvec sparseMatrixColPtrs(num_of_elements + 1);
+    // Iterate over the 2x2 matrices and add their entries to the Triplets vector
+        for (int i = 0; i < num_of_elements; i++) {
+            for (int row = 0; row < 16; row++) {
+                for (int col = 0; col < 16; col++) {
+                        int dof_row = larger_element_dofs(row, i);
+                        int dof_col = larger_element_dofs(col, i);
+                    try {
+                        // Check bounds before accessing elements
+                        triplets.emplace_back(dof_row-2, dof_col-2, larger_KJ( row * 16 + col,i)); // -1 due to start index of 0
 
-    // Initialize variables for CSR construction
-    int nnz = 0;
-    for (int i = 0; i < larger_KJ.n_elem; i++) {
-        for (int j = 0; j < larger_element_dofs.n_rows; j++) {
-            int colIndex = larger_element_dofs(j, i);
-            if (colIndex != 0) {
-                sparseMatrixData(nnz) = larger_KJ(i);
-                sparseMatrixRowIndices(nnz) = j;
-                nnz++;
+                    } catch (const std::out_of_range& e) {
+                        // Handle the out-of-range exception here (e.g., print an error message).
+                        std::cerr << "Error: " << e.what() << " at i=" << i << ", row=" << row << ", col=" << col << std::endl;
+                        // You can also choose to do something else, like logging or terminating the program.
+                    }
+                }
             }
         }
-        sparseMatrixColPtrs(i + 1) = nnz;
-    }
-    if (inputReader_.getDesiredOutput()=="all"){
-        std::cout<<"print all"<<std::endl;
-        utils_.writeDataToFile(sparseMatrixRowIndices,"Outputs/KTsparseMatrixRowIndices.txt",true);
-        utils_.writeDataToFile(sparseMatrixRowIndices,"Outputs/KTsparseMatrixRowIndices.txt",true);
-        utils_.writeDataToFile(sparseMatrixColPtrs,"Outputs/KTsparseMatrixColPtrs.txt",true);
-        utils_.writeDataToFile(sparseMatrixData,"Outputs/KTsparseMatrixData.txt",true);
-    }
+
+                if (inputReader_.getDesiredOutput()=="all"){
+                    utils_.writeDataToFile(triplets,"Outputs/KTintegration_triplets.txt",true);
+                }
+  std::cout << "triplets made." << std::endl;
+
+  // Create the sparse matrix and set its values from the Triplets vector
+  Eigen::SparseMatrix<double> KsparseMatrix(mesh_.getNumAllNodes()*2, mesh_.getNumAllNodes()*2);
+  std::cout << "init sparse. " <<mesh_.getNumAllNodes()*2 << std::endl;
+  KsparseMatrix.setFromTriplets(triplets.begin(), triplets.end());
+  std::cout << "made Sparse from eigen." << std::endl;
     // Create CSR sparse matrix
-    arma::sp_mat KJ_sparse(sparseMatrixRowIndices, sparseMatrixColPtrs, sparseMatrixData, larger_KJ.n_rows, larger_KJ.n_cols);
+
     
     // reduce the system and store in the return structure
     SparseSystem result;
-    // Convert std::vector<int> to arma::uvec
-    arma::uvec uVector = arma::conv_to<arma::uvec>::from(freedofidxs_);
-    result.KT_sparse_reduced=utils_.spmat_submat(KJ_sparse,freedofidxs_,freedofidxs_);
+    // Convert std::vector  <int> to arma::uvec
+    result.KsubMatrix =  Solver::reduceSystem(KsparseMatrix);
+    std::cout << " K Submatrix retrieved." << std::endl;
+    // Resize the vector to the desired size and initialize with zeros
+    result.R_reduced.resize(freedofidxs_.size(), 0.0);
     for (int i = 0; i < freedofidxs_.size(); i++) {
                     result.R_reduced[i] += Full_Ra[freedofidxs_[i]];
+    }
+
+    std::cout << " R Submatrix retrieved." << std::endl;
+                if (inputReader_.getDesiredOutput()=="all"){
+                    utils_.writeDataToFile(result.KsubMatrix,"Outputs/KTintegration_reducedK.txt",true);
+                    utils_.writeDataToFile(result.R_reduced,"Outputs/KTintegration_reducedRa.txt",true);
                 }
     return result;
 }
@@ -152,7 +173,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     // Define variables
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     arma::vec shapeFunctions(8,1);          // Shape functions as a 4x1 vector
-    mat shapeFunctionDerivatives(8, 3); // Shape function derivatives
+    arma::mat shapeFunctionDerivatives(8, 3); // Shape function derivatives
     // Define the integration result matrices
     arma::mat RT(8, 1, arma::fill::zeros);
     arma::mat RV(8, 1, arma::fill::zeros);
@@ -179,7 +200,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
 
-    mat JM = shapeFunctionDerivatives.t() * coords.t(); // Fixed the loop indexing
+    arma::mat JM = shapeFunctionDerivatives.t() * coords.t(); // Fixed the loop indexing
                 //std::cout << "JM." << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
         utils_.writeDataToFile(JM,"Outputs/KTJM.txt",true);
@@ -219,7 +240,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "Vee" << std::endl;
     // Check dimensions before dot product
 
-    mat Thmat = shapeFunctions.t()*Tee;
+    arma::mat Thmat = shapeFunctions.t()*Tee;
     double Th=Thmat(0,0);
     //std::cout << "Th: " << Th << std::endl;
 
@@ -311,7 +332,73 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     // Return the heat flow as a 4x1 Armadillo matrix
     return result;
 }
+///////////////////////////////////////////////////////////////////
 
+Eigen::SparseMatrix<double> Solver::reduceSystem(const Eigen::SparseMatrix<double>& K) {
+            std::cout << "Reducing system " << std::endl;
+
+    int numDofs = K.rows();
+    int numFixedDofs = freedofidxs_.size(); // Assuming freedofidx_ is a private member variable
+            std::cout << "freedofs size:  " << numFixedDofs << std::endl;
+            std::cout << "Krows  " << numDofs << std::endl;
+
+    // Create the mapping from original degrees of freedom to reduced degrees of freedom
+    std::vector<int> dofMap(numDofs, -1);
+    for (int i = 0; i < numFixedDofs; i++) {
+            std::cout << freedofidxs_[i] << " "<<i<< std::endl;
+        dofMap[freedofidxs_[i]] = i;
+    }
+            std::cout << "dofmap " << std::endl;
+
+    // Create the reduced sparse matrix
+    Eigen::SparseMatrix<double> reducedK(numFixedDofs, numFixedDofs);
+    for (int k = 0; k < K.outerSize(); ++k) {
+        for (Eigen::SparseMatrix<double>::InnerIterator it(K, k); it; ++it) {
+            int row = it.row();
+            int col = it.col();
+            if (dofMap[row] != -1 && dofMap[col] != -1) {
+                reducedK.insert(dofMap[row], dofMap[col]) = it.value();
+            }
+        }
+    }
+            std::cout << "loop " << std::endl;
+
+    reducedK.makeCompressed();
+
+    return reducedK;
+}
+/////////////////////////////////////////////////////////////
+Eigen::VectorXd Solver::solveSparseSystem(const SparseSystem& system) {
+    // Extract the submatrix and reduced right-hand side
+    Eigen::SparseMatrix<double> Ksub = system.KsubMatrix;
+    Eigen::VectorXd Rreduced(system.R_reduced.size());
+    for (size_t i = 0; i < system.R_reduced.size(); ++i) {
+        Rreduced(i) = system.R_reduced[i];
+    }
+
+    // Create a sparse LU solver
+    Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
+    solver.compute(Ksub);
+
+    if (solver.info() != Eigen::Success) {
+        // Decomposition failed
+        std::cout << "Warning: Sparse LU decomposition failed." << std::endl;
+        // Handle the error here, possibly by returning an error code or throwing an exception
+        // Example: throw std::runtime_error("Sparse LU decomposition failed.");
+    }
+
+    // Solve the system
+    Eigen::VectorXd solution = solver.solve(Rreduced);
+
+    if (solver.info() != Eigen::Success) {
+        // Solve failed
+        std::cout << "Warning: Solving the sparse system failed." << std::endl;
+        // Handle the error here, possibly by returning an error code or throwing an exception
+        // Example: throw std::runtime_error("Solving the sparse system failed.");
+    }
+
+    return solution;
+}
 
 /*
 // make another function only as solver that takes the assembly and can choose btw modified NR, or normal and returns successive errors etc...

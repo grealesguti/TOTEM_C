@@ -8,19 +8,25 @@
 #include "BCInit.h"
 #include "Mesh.h"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
+#include "C:\msys64\mingw64\include\eigen3\Eigen\Dense"
+#include "C:\msys64\mingw64\include\eigen3\Eigen\Sparse"
 
 class Solver {
 public:
 
     struct SparseSystem {
-        arma::sp_mat KT_sparse_reduced;
-        arma::uvec R_reduced;
+        Eigen::SparseMatrix<double> KsubMatrix;
+        std::vector<double> R_reduced;
     };
 
     Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit);
+    
     // SOLVER FUNCTIONS
     // Function to perform assembly and return R_b and KJ_b
     SparseSystem Assembly();
+    Eigen::SparseMatrix<double> reduceSystem(const Eigen::SparseMatrix<double>& K);
+    Eigen::VectorXd solveSparseSystem(const SparseSystem& system);
+
     //arma::mat DirectSolver(const arma::mat&,const arma::mat& coords, double heatvalue);
     //arma::mat NewtonRaphson(const arma::mat&,const arma::mat& coords, double heatvalue);
 
