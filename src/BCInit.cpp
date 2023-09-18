@@ -80,7 +80,18 @@ void BCInit::boundaryConditions() {
 
 
             std::cout << "HEAT INTEGRATION." << std::endl;
-            arma::mat element_load_vector(4, 1, arma::fill::zeros);
+            std::size_t elementTag = elements[elementindexVector[0]];    std::vector<int> nodeTags_el;
+            int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
+            // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
+            int nodes_per_element=8;// DEFAULT
+            if(etype==3){// 4-node quadrangle
+                nodes_per_element = 4; // Total number of nodes per element
+            }else if(etype==16){// 8-node second order quadrangle
+                nodes_per_element = 8; // Total number of nodes per element
+            }
+            std::cout << "Element of type: " << etype<< " nodes_per_element " <<nodes_per_element<< std::endl;
+
+            arma::mat element_load_vector(nodes_per_element, 1, arma::fill::zeros);
             // Get and print the number of threads
             int num_threads = omp_get_max_threads();
             std::cout << "Number of threads to be used: " << num_threads << std::endl;
@@ -89,7 +100,7 @@ void BCInit::boundaryConditions() {
             for (std::size_t elementindex : elementindexVector) {
                 // Reset element_load_vector to zeros before each element
                 std::size_t element = elements[elementindex];
-                element_load_vector.set_size(4, 1); // Resize element_load_vector to 4x1
+                element_load_vector.set_size(nodes_per_element, 1); // Resize element_load_vector to 4x1
 
                 element_load_vector.zeros();
 
@@ -100,13 +111,13 @@ void BCInit::boundaryConditions() {
                  std::cout << "Processing element: " << element << std::endl;
 
                 // Loop through element nodes and update loadVector_
-                for (std::size_t i = elementindex * 4; i < (elementindex + 1) * 4; ++i) {
+                for (std::size_t i = elementindex * nodes_per_element; i < (elementindex + 1) * nodes_per_element; ++i) {
                     if (i < element_nodes.size()) {
                         std::size_t node = element_nodes[i];
                         if (node * 2 + 1 < loadVector_.size()) {
                             // Use atomic operation to avoid race condition
                             //#pragma omp atomic
-                            loadVector_(node * 2) += element_load_vector(i - elementindex * 4, 0);
+                            loadVector_(node * 2) += element_load_vector(i - elementindex * nodes_per_element, 0);
                         } else {
                             std::cerr << "Error: Node index out of bounds!" << std::endl;
                         }
@@ -129,10 +140,20 @@ void BCInit::boundaryConditions() {
 
 mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int element) {
     // Define variables
+    std::size_t elementTag = element;    std::vector<int> nodeTags_el;
+    int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
+    // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
+    int nodes_per_element=8;// DEFAULT
+    if(etype==3){// 4-node quadrangle
+        nodes_per_element = 4; // Total number of nodes per element
+    }else if(etype==16){// 8-node second order quadrangle
+        nodes_per_element = 8; // Total number of nodes per element
+    }
+
+    arma::vec shapeFunctions(nodes_per_element,1);          // Shape functions as a 4x1 vector
+    mat shapeFunctionDerivatives(nodes_per_element, 2); // Shape function derivatives
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
-    arma::vec shapeFunctions(4,1);          // Shape functions as a 4x1 vector
-    mat shapeFunctionDerivatives(4, 2); // Shape function derivatives
-    mat F_q(4, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
+    mat F_q(nodes_per_element, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
     //std::cout << "Extract natural coordinates. " << std::endl;
     double xi=0, eta=0;
     if (natcoords.n_rows >= 2 && natcoords.n_cols >= 1) {
@@ -146,8 +167,14 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
     }
     // Calculate shape functions and their derivatives
     //std::cout << "Get shape functions and derivatives. " << std::endl;
-    shapeFunctions = elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
-    elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
+    if(etype==3){// 4-node quadrangle
+        shapeFunctions = elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
+        elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
+    }else if(etype==16){// 8-node second order quadrangle
+        elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta,shapeFunctions);
+        elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
+    }
+
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
     mat JM = shapeFunctionDerivatives.t() * coords.t();

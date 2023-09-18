@@ -487,8 +487,8 @@ template bool Utils::writeDataToFile(const Eigen::VectorXd& data, const std::str
 /////////////////////////////////////////////////////////////////////////////////////
 arma::mat Utils::calculate_T3(const arma::mat& nodes) { // the input is a 3x4 matrix containing the coords of each node in the columns.
 // LINK: http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-2/
-    if (nodes.n_rows != 3 || nodes.n_cols != 4) {
-        std::cerr << "Input matrix must be 3x4." << std::endl;
+    if (nodes.n_rows != 3) {
+        std::cerr << "Input matrix must be 3x(nodes per element)." << std::endl;
         return arma::mat();  // Return an empty matrix to indicate an error
     }
 
@@ -530,7 +530,7 @@ arma::mat Utils::calculate_inverse_T3(const arma::mat& nodes) {
     arma::mat T3 = calculate_T3(nodes);
 
     if (T3.is_empty()) {
-        std::cerr << "Error in calculating T3. Cannot compute the inverse." << std::endl;
+        std::cerr << "Error in calculating T3(empty). Cannot compute the inverse." << std::endl;
         return arma::mat();  // Return an empty matrix to indicate an error
     }
 

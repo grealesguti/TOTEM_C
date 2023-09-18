@@ -37,7 +37,7 @@ Solver::SparseSystem Solver::Assembly() {
     int nodes_per_element=20;// DEFAULT
     if(etype==5){// Hexahedral 8 node element
         nodes_per_element = 8; // Total number of nodes per element
-    }else if(etype==12){// Hexahedral 20 node element
+    }else if(etype==17){// Hexahedral 20 node element
         nodes_per_element = 20; // Total number of nodes per element
     }
     int num_dofs_per_element = nodes_per_element*dof_per_node;
@@ -191,15 +191,12 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     int elementTag1=elementTag;
     int etype = mesh_.getElementInfo(elementTag1, nodeTags_el1);
     // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
-    int nodes_per_element;
+    int nodes_per_element=20;
     if(etype==5){// Hexahedral 8 node element
         nodes_per_element = 8; // Total number of nodes per element
-    }else if(etype==12){// Hexahedral 20 node element
+    }else if(etype==17){// Hexahedral 20 node element
         nodes_per_element = 20; // Total number of nodes per element
-    }else {// Hexahedral 20 node element DEFAULT
-        // ADD WARNING
-        nodes_per_element = 20; // Total number of nodes per element
-    }   
+    }
     int dofs_per_node = dofs.size()/nodes_per_element;
     //std::cout<< "nodes per element "<<nodes_per_element<< "dofs"<<dofs_per_node<<std::endl;
     // Define variables
@@ -227,8 +224,14 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     }
     // Calculate shape functions and their derivatives
     //std::cout << "Get shape functions and derivatives. " << std::endl;
-    elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta, shapeFunctions);
-    elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+    if(etype==5){// Hexahedral 8 node element
+            elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta, shapeFunctions);
+            elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+    }else if(etype==17){// Hexahedral 20 node element
+            elements_.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta, shapeFunctions);
+            elements_.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+    }
+
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
 
@@ -250,7 +253,6 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
 
     // Extract material properties
     int materialindex = mesh_.getElementMaterial(elementTag);
-    bool flag;
     //std::cout << "material index "<<materialindex << std::endl;
 
     double De=inputReader_.getMaterialPropertyValue(materialindex,"ElectricalConductivity");
@@ -323,7 +325,6 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
         utils_.writeDataToFile(dqdv,"Outputs/KTdqdv.txt",true);
         utils_.writeDataToFile(RT,"Outputs/KTRT.txt",true);
         utils_.writeDataToFile(RV,"Outputs/KTRV.txt",true);
-
         utils_.writeDataToFile(K11,"Outputs/KTK11.txt",true);
         utils_.writeDataToFile(K12,"Outputs/KTK12.txt",true);
         utils_.writeDataToFile(K21,"Outputs/KTK21.txt",true);
@@ -355,6 +356,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "integrand calculated " << std::endl;
     result.R=R*detJ;
     result.KT=KV*detJ;
+
     if (inputReader_.getDesiredOutput()=="all"){
         utils_.writeDataToFile(result.KT,"Outputs/KTel_rstKT.txt",true);
         utils_.writeDataToFile(result.R,"Outputs/KTel_rstR.txt",true);
