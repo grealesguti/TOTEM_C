@@ -80,16 +80,10 @@ void BCInit::boundaryConditions() {
 
 
             std::cout << "HEAT INTEGRATION." << std::endl;
-            std::size_t elementTag = elements[elementindexVector[0]];    std::vector<int> nodeTags_el;
-            int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
+
             // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
-            int nodes_per_element=8;// DEFAULT
-            if(etype==3){// 4-node quadrangle
-                nodes_per_element = 4; // Total number of nodes per element
-            }else if(etype==16){// 8-node second order quadrangle
-                nodes_per_element = 8; // Total number of nodes per element
-            }
-            std::cout << "Element of type: " << etype<< " nodes_per_element " <<nodes_per_element<< std::endl;
+            int nodes_per_element=mesh_.getNumNodesForElement(elements[elementindexVector[0]]);// DEFAULT
+            std::cout << " nodes_per_element " <<nodes_per_element<< std::endl;
 
             arma::mat element_load_vector(nodes_per_element, 1, arma::fill::zeros);
             // Get and print the number of threads

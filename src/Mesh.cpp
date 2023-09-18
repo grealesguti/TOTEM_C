@@ -493,16 +493,8 @@ void Mesh::InitMeshEntityElements() {
         return coordinates;
     }
 
+////////////////////////////////////////////////////////////////////////////////////////////////
 
-    int Mesh::getElementInfo(int elementTag, std::vector<int> & nodeTags_el) {
-        int dim, entityTag, elementType;
-        std::vector<std::size_t> nodeTags_size_t;
-        gmsh::model::mesh::getElement(elementTag, elementType, nodeTags_size_t, dim, entityTag);
-
-        // Convert the std::vector<std::size_t> to std::vector<int>
-        nodeTags_el.assign(nodeTags_size_t.begin(), nodeTags_size_t.end());
-        return elementType;
-    }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -614,4 +606,164 @@ double Mesh::getMaterialPropertyForElement(std::size_t elementIndex, const std::
     }
 
     return propertyValue;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    int Mesh::getElementInfo(int elementTag, std::vector<int> & nodeTags_el) {
+        int dim, entityTag, elementType;
+        std::vector<std::size_t> nodeTags_size_t;
+        gmsh::model::mesh::getElement(elementTag, elementType, nodeTags_size_t, dim, entityTag);
+
+        // Convert the std::vector<std::size_t> to std::vector<int>
+        nodeTags_el.assign(nodeTags_size_t.begin(), nodeTags_size_t.end());
+        return elementType;
+    }
+////////////////////////////////////////////////////////////////////////////////////////////////
+int Mesh::getNumNodesForElement(int elementTag) {
+    int dim, entityTag;
+    std::vector<int> nodeTags_el;
+    int etype = getElementInfo(elementTag, nodeTags_el);
+    std::string shape;
+
+    // Calculate the number of nodes based on the element type
+    int numNodes = 0;
+    switch (etype) {
+        case 1: // 2-node line
+            numNodes = 2;
+            break;
+        case 2: // 3-node triangle
+            numNodes = 3;
+            break;
+        case 3: // 4-node quadrangle
+            numNodes = 4;
+            break;
+        case 4: // 4-node tetrahedron
+            numNodes = 4;
+            break;
+        case 5: // 8-node hexahedron
+            numNodes = 8;
+            break;
+        case 6: // 6-node prism
+            numNodes = 6;
+            break;
+        case 7: // 5-node pyramid
+            numNodes = 5;
+            break;
+        case 8: // 3-node second order line
+            numNodes = 3;
+            break;
+        case 9: // 6-node second order triangle
+            numNodes = 6;
+            break;
+        case 10: // 9-node second order quadrangle
+            numNodes = 9;
+            break;
+        case 11: // 10-node second order tetrahedron
+            numNodes = 10;
+            break;
+        case 12: // 27-node second order hexahedron
+            numNodes = 12;
+            break;
+        case 13: // 14-node second order pyramid
+            numNodes = 13;
+            break;
+        case 14: // 14-node second order pyramid
+            numNodes = 14;
+            break;
+        case 15: // 1-node point
+            numNodes = 1;
+            break;
+        case 16: // 8-node second order quadrangle
+            numNodes = 8;
+            break;
+        case 17: // 20-node second order hexahedron
+            numNodes = 20;
+            break;
+        case 18: // 15-node second order prism
+            numNodes = 15;
+            break;
+        case 19: // 13-node second order pyramid
+            numNodes = 19;
+            break;
+        case 20: // 9-node third order incomplete triangle
+            numNodes = 20;
+            break;
+        case 21: // 10-node third order triangle
+            numNodes = 10;
+            break;
+        case 22: // 12-node fourth order incomplete triangle
+            numNodes = 12;
+            break;
+        case 23: // 15-node fourth order triangle
+            numNodes = 15;
+            break;
+        case 24: // 15-node fifth order incomplete triangle
+            numNodes = 15;
+            break;
+        case 25: // 21-node fifth order complete triangle
+            numNodes = 21;
+            break;
+        case 26: // 4-node third order edge
+            numNodes = 4;
+            break;
+        case 27: // 5-node fourth order edge
+            numNodes = 5;
+            break;
+        case 28: // 6-node fifth order edge
+            numNodes = 6;
+            break;
+        case 29: // 20-node third order tetrahedron
+            numNodes = 20;
+            break;
+        case 30: // 35-node fourth order tetrahedron
+            numNodes = 35;
+            break;
+        case 31: // 56-node fifth order tetrahedron
+            numNodes = 56;
+            break;
+        case 92: // 64-node third order hexahedron
+            numNodes = 64;
+            break;
+        case 93: // 125-node fourth order hexahedron
+            numNodes = 125;
+            break;
+        default:
+            // Handle unsupported element types or return an error code
+            numNodes = -1; // You can choose an appropriate error code here
+            break;
+    }
+
+    // Determine the dimension based on the element type
+    switch (etype) {
+        case 1: case 8:  // 1D elements
+            dim = 1;
+            shape="line";
+            break;
+        case 2: case 9: case 20: case 21: case 22: case 23: case 24: case 25:// 2D elements
+            dim = 2;
+            shape="triangle";
+            break;
+        case 3: case 10: case 16:// 2D elements
+            dim = 2;
+            shape="quadrangle";
+            break;
+        case 4: case 11: case 29: case 30: case 31:// 3D elements
+            dim = 3;
+            shape="tetrahedron";
+            break;
+        case 5: case 12: case 17: case 92: case 93: // 3D elements
+            dim = 3;
+            shape="hexahedron";
+            break;
+        case 6: case 13: case 18: // 3D elements
+            dim = 3;
+            shape="prism";
+            break;
+        default:
+            dim = -1; // You can choose an appropriate error code here
+            break;
+    }
+
+    return numNodes;
 }

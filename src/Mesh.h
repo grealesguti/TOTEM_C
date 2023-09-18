@@ -9,6 +9,8 @@
 #include <fstream>
 #include <vector>
 #include <armadillo>
+#include "Elements.h"
+
 
 
 class Mesh {
@@ -68,6 +70,8 @@ public:
     const std::vector<double>& getAllCoordinates() const {
         return coord;
     }
+    int getNumNodesForElement(int elementTag);
+
 private:
     const InputReader& inputReader_;
     std::vector<std::size_t> elementTags,nodeTags,elementNodeTags,nodeTagselem;
