@@ -2,7 +2,7 @@
 using namespace arma;
 
 Mesh::Mesh(const InputReader& inputReader)
-    : inputReader_(inputReader) {
+    : inputReader_(inputReader),elements_() {
     // You may want to initialize other member variables here
     gmsh::initialize();
     gmsh::open(inputReader_.getMeshFileName());
@@ -620,7 +620,7 @@ double Mesh::getMaterialPropertyForElement(std::size_t elementIndex, const std::
         return elementType;
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////
-int Mesh::getNumNodesForElement(int elementTag) {
+std::pair<int, int> Mesh::getNumNodesForElement(int elementTag) {
     int dim, entityTag;
     std::vector<int> nodeTags_el;
     int etype = getElementInfo(elementTag, nodeTags_el);
@@ -765,5 +765,35 @@ int Mesh::getNumNodesForElement(int elementTag) {
             break;
     }
 
-    return numNodes;
+    return std::make_pair(numNodes, etype);
+;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Mesh::selectShapeFunctionsAndDerivatives(int etype, double xi, double eta, double zeta, arma::vec& shapeFunctions, arma::mat& shapeFunctionDerivatives) {
+    // Clear the output vectors
+
+    if (etype == 3) { // 4-node quadrangle
+            std::cout<<"shape functions: "<< etype<< std::endl;
+            shapeFunctions = elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
+            elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
+    } else if (etype == 16) { // 8-node second order quadrangle
+            std::cout<<"shape functions: "<< etype<< std::endl;
+            elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta, shapeFunctions);
+            elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta,shapeFunctionDerivatives);
+    }else if(etype==5){// Hexahedral 8 node element
+            std::cout<<"shape functions: "<< etype<< std::endl;
+            elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta, shapeFunctions);
+            elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+    }else if(etype==17){// Hexahedral 20 node element
+            std::cout<<"shape functions: "<< etype<< std::endl;
+            elements_.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta, shapeFunctions);
+            elements_.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+    } else {
+        // Handle unsupported element types or return an error code
+        // You can choose an appropriate error handling strategy here
+        // For example, you can throw an exception or set an error flag
+        // and handle it in the calling code.
+    }
 }

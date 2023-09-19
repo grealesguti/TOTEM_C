@@ -70,9 +70,12 @@ public:
     const std::vector<double>& getAllCoordinates() const {
         return coord;
     }
-    int getNumNodesForElement(int elementTag);
+    std::pair<int, int> getNumNodesForElement(int elementTag);
+    // Function to select shape functions and derivatives based on element type
+    void selectShapeFunctionsAndDerivatives(int etype, double xi, double eta,double zeta, arma::vec& shapeFunctions, arma::mat& shapeFunctionDerivatives);
 
 private:
+    Elements elements_;
     const InputReader& inputReader_;
     std::vector<std::size_t> elementTags,nodeTags,elementNodeTags,nodeTagselem;
     int numPointsInHex = 8; // Get the number of points in the hexahedron i from the MSH file
