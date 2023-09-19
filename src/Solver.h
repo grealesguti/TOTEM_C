@@ -29,6 +29,9 @@ public:
     double runNewtonRaphson(); // Return both the solution and final residual
     std::vector<double> getAllSolDofs() const {return soldofs_;};
     double getAllSolDof(int i) const {return soldofs_[i];};
+    double runArcLengthSolver();
+    double runModifiedNewtonRaphsonSolver(bool applyLoadIncrements);
+    double runNewtonRaphsonWithUniformIncrements(const Eigen::VectorXd& totalLoadVector, int numUniformIncrements);
 
     //arma::mat DirectSolver(const arma::mat&,const arma::mat& coords, double heatvalue);
     //arma::mat NewtonRaphson(const arma::mat&,const arma::mat& coords, double heatvalue);

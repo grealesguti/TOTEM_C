@@ -133,6 +133,9 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
         result = zeros<mat>(1, 1); // Initialize result to a 1x1 matrix with zero value.
         return;
     }
+    std::pair<int, int> nodesperelement_etype = mesh.getNumNodesForElement(elementTag);
+    int nodes_per_element = nodesperelement_etype.first; // Number of nodes
+    int etype = nodesperelement_etype.second; // Element type    
 
     mat weights;
     mat gaussPoints;
@@ -211,7 +214,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
         // 1D integration using a single loop.
         //std::cout << "of dimension 1" << std::endl;
             arma::mat natcoords(1, 1);
-            arma::mat f(2, 1);
+            arma::mat f(nodes_per_element, 1);
         for (uword i = 0; i < weights.n_rows; ++i) {
                 // Explicitly use the arma::operator* function for multiplication
                 f = arma::operator*(func(natcoords, coordinates_tr_XY, bcvalue,elementTag), weights(i, 0));
@@ -219,7 +222,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
     } else if (dimension == 2) {
         //std::cout << "of dimension 2" << std::endl;
             arma::mat natcoords(2, 1);
-            arma::mat f(4, 1);
+            arma::mat f(nodes_per_element, 1);
         // 2D integration using a double loop.
         for (uword i = 0; i < weights.n_rows; ++i) {
             for (uword j = 0; j < weights.n_rows; ++j) {
@@ -239,7 +242,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
             result = weights * weights.t() % weights * weights.t() % weights * weights.t() % func(gaussPoints,coordinates_tr_XY,bcvalue,elementTag);
         } else {
             arma::mat natcoords(3, 1);
-            arma::mat f(8, 1);
+            arma::mat f(nodes_per_element, 1);
             //std::cout << "of dimension 3" << std::endl;
             // Generic 3D integration using a triple loop.
             for (uword i = 0; i < weights.n_rows; ++i) {
@@ -280,8 +283,12 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
         result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
         return result;
     }
-    int nodes_per_element = 8; // Total number of nodes per element
-    int dof_per_node = 2; // Assuming 2 degrees of freedom per node
+    std::pair<int, int> nodesperelement_etype = mesh.getNumNodesForElement(elementTag);
+    int nodes_per_element = nodesperelement_etype.first; // Number of nodes
+    int etype = nodesperelement_etype.second; // Element type    
+
+    int dof_per_node = element_dof_values.size()/nodes_per_element; // Assuming 2 degrees of freedom per node
+    int matrixdofs=element_dof_values.size();
     arma::mat weights;
     arma::mat gaussPoints;
     std::vector<int> nodeTags_el;
@@ -315,8 +322,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     if (dimension == 1) {
         // 1D integration using a single loop.
         arma::mat natcoords(1, 1);
-        arma::mat Re(4, 1, arma::fill::zeros);
-        arma::mat KTe(4, 4, arma::fill::zeros);
+        arma::mat Re(matrixdofs, 1, arma::fill::zeros);
+        arma::mat KTe(matrixdofs, matrixdofs, arma::fill::zeros);
 
         for (uword i = 0; i < weights.n_rows; ++i) {
             natcoords(0, 0) = gaussPoints(i, 0);
@@ -331,8 +338,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     } else if (dimension == 2) {
         // 2D integration using a double loop.
         arma::mat natcoords(2, 1);
-        arma::mat R(8, 1, arma::fill::zeros);
-        arma::mat KT(8, 8, arma::fill::zeros);
+        arma::mat R(matrixdofs, 1, arma::fill::zeros);
+        arma::mat KT(matrixdofs, matrixdofs, arma::fill::zeros);
 
         for (uword i = 0; i < weights.n_rows; ++i) {
             for (uword j = 0; j < weights.n_rows; ++j) {
@@ -355,8 +362,8 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
             //result.R = arma::zeros<arma::mat>(16, 1); // Initialize R to a zero matrix.
         } else {
             arma::mat natcoords(3, 1);
-            arma::mat R(16, 1, arma::fill::zeros);
-            arma::mat KT(16, 16, arma::fill::zeros);
+            arma::mat R(matrixdofs, 1, arma::fill::zeros);
+            arma::mat KT(matrixdofs, matrixdofs, arma::fill::zeros);
 
             for (uword i = 0; i < weights.n_rows; ++i) {
                 for (uword j = 0; j < weights.n_rows; ++j) {

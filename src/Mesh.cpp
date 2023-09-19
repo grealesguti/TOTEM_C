@@ -775,21 +775,22 @@ void Mesh::selectShapeFunctionsAndDerivatives(int etype, double xi, double eta, 
     // Clear the output vectors
 
     if (etype == 3) { // 4-node quadrangle
-            std::cout<<"shape functions: "<< etype<< std::endl;
+            //std::cout<<"shape functions: "<< etype<< std::endl;
             shapeFunctions = elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
             elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
     } else if (etype == 16) { // 8-node second order quadrangle
-            std::cout<<"shape functions: "<< etype<< std::endl;
+            //std::cout<<"shape functions: "<< etype<< std::endl;
             elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta, shapeFunctions);
             elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta,shapeFunctionDerivatives);
     }else if(etype==5){// Hexahedral 8 node element
-            std::cout<<"shape functions: "<< etype<< std::endl;
+            //std::cout<<"shape functions: "<< etype<< std::endl;
             elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta, shapeFunctions);
             elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
     }else if(etype==17){// Hexahedral 20 node element
-            std::cout<<"shape functions: "<< etype<< std::endl;
             elements_.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta, shapeFunctions);
+            //std::cout<<"shape functions: "<< etype<< std::endl;
             elements_.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+            //std::cout<<"shape function derivatives: "<< etype<< std::endl;
     } else {
         // Handle unsupported element types or return an error code
         // You can choose an appropriate error handling strategy here

@@ -283,76 +283,79 @@ void Elements::CalculateHexahedralSerendipityShapeFunctions(double xi, double et
 }
 
 // Function to calculate derivatives of shape functions for a hexahedral serendipity element with 20 nodes
-void Elements::CalculateHexahedralSerendipityShapeFunctionDerivatives(double xi, double eta, double zeta, arma::mat& shapeFunctionDerivatives) {
+void Elements::CalculateHexahedralSerendipityShapeFunctionDerivatives(double xi, double eta, double zeta, arma::mat& shapeFunctionDerivatives0) {
     // Ensure the shapeFunctionDerivatives matrix is of the correct size (20 nodes x 3 derivatives)
-    shapeFunctionDerivatives.set_size(20, 3);
-
+    shapeFunctionDerivatives0.set_size(20, 3);
+    arma::mat shapeFunctionDerivatives;
+    shapeFunctionDerivatives.set_size(3, 20);
     // Define the shape function derivatives for a hexahedral serendipity element
     double xi1 = xi;
     double xi2 = eta;
     double xi3 = zeta;
 
 // Define the provided shape function derivatives
-    shapeFunctionDerivatives(1, 0) = ((xi2 - 1) * (xi3 - 1) * (xi1 + xi2 + xi3 + 2)) / 8 + ((xi1 - 1) * (xi2 - 1) * (xi3 - 1)) / 8;
-    shapeFunctionDerivatives(1, 1) = -((xi2 + 1) * (xi3 - 1) * (xi1 - xi2 + xi3 + 2)) / 8 - ((xi1 - 1) * (xi2 + 1) * (xi3 - 1)) / 8;
-    shapeFunctionDerivatives(1, 2) = ((xi2 + 1) * (xi3 + 1) * (xi1 - xi2 - xi3 + 2)) / 8 + ((xi1 - 1) * (xi2 + 1) * (xi3 + 1)) / 8;
-    shapeFunctionDerivatives(1, 3) = -((xi2 - 1) * (xi3 + 1) * (xi1 + xi2 - xi3 + 2)) / 8 - ((xi1 - 1) * (xi2 - 1) * (xi3 + 1)) / 8;
-    shapeFunctionDerivatives(1, 4) = ((xi1 + 1) * (xi2 - 1) * (xi3 - 1)) / 8 - ((xi2 - 1) * (xi3 - 1) * (xi2 - xi1 + xi3 + 2)) / 8;
-    shapeFunctionDerivatives(1, 5) = -((xi2 + 1) * (xi3 - 1) * (xi1 + xi2 - xi3 - 2)) / 8 - ((xi1 + 1) * (xi2 + 1) * (xi3 - 1)) / 8;
-    shapeFunctionDerivatives(1, 6) = ((xi2 + 1) * (xi3 + 1) * (xi1 + xi2 + xi3 - 2)) / 8 + ((xi1 + 1) * (xi2 + 1) * (xi3 + 1)) / 8;
-    shapeFunctionDerivatives(1, 7) = -((xi2 - 1) * (xi3 + 1) * (xi1 - xi2 + xi3 - 2)) / 8 - ((xi1 + 1) * (xi2 - 1) * (xi3 + 1)) / 8;
-    shapeFunctionDerivatives(1, 8) = -((xi2 * xi2 - 1) * (xi3 - 1)) / 4;
-    shapeFunctionDerivatives(1, 9) = ((xi3 * xi3 - 1) * (xi2 + 1)) / 4;
-    shapeFunctionDerivatives(1, 10) = ((xi2 * xi2 - 1) * (xi3 + 1)) / 4;
-    shapeFunctionDerivatives(1, 11) = -((xi3 * xi3 - 1) * (xi2 - 1)) / 4;
-    shapeFunctionDerivatives(1, 12) = ((xi2 * xi2 - 1) * (xi3 - 1)) / 4;
-    shapeFunctionDerivatives(1, 13) = -((xi3 * xi3 - 1) * (xi2 + 1)) / 4;
-    shapeFunctionDerivatives(1, 14) = -((xi2 * xi2 - 1) * (xi3 + 1)) / 4;
-    shapeFunctionDerivatives(1, 15) = ((xi3 * xi3 - 1) * (xi2 - 1)) / 4;
-    shapeFunctionDerivatives(1, 16) = -(xi1 * (xi2 - 1) * (xi3 - 1)) / 2;
-    shapeFunctionDerivatives(1, 17) = (xi1 * (xi2 + 1) * (xi3 - 1)) / 2;
-    shapeFunctionDerivatives(1, 18) = -(xi1*(xi2 + 1)*(xi3 + 1))/2;
-    shapeFunctionDerivatives(1, 19) = (xi1*(xi2 - 1)*(xi3 + 1))/2;
+    shapeFunctionDerivatives(0, 0) = ((xi2 - 1) * (xi3 - 1) * (xi1 + xi2 + xi3 + 2)) / 8 + ((xi1 - 1) * (xi2 - 1) * (xi3 - 1)) / 8;
+    shapeFunctionDerivatives(0, 1) = -((xi2 + 1) * (xi3 - 1) * (xi1 - xi2 + xi3 + 2)) / 8 - ((xi1 - 1) * (xi2 + 1) * (xi3 - 1)) / 8;
+    shapeFunctionDerivatives(0, 2) = ((xi2 + 1) * (xi3 + 1) * (xi1 - xi2 - xi3 + 2)) / 8 + ((xi1 - 1) * (xi2 + 1) * (xi3 + 1)) / 8;
+    shapeFunctionDerivatives(0, 3) = -((xi2 - 1) * (xi3 + 1) * (xi1 + xi2 - xi3 + 2)) / 8 - ((xi1 - 1) * (xi2 - 1) * (xi3 + 1)) / 8;
+    shapeFunctionDerivatives(0, 4) = ((xi1 + 1) * (xi2 - 1) * (xi3 - 1)) / 8 - ((xi2 - 1) * (xi3 - 1) * (xi2 - xi1 + xi3 + 2)) / 8;
+    shapeFunctionDerivatives(0, 5) = -((xi2 + 1) * (xi3 - 1) * (xi1 + xi2 - xi3 - 2)) / 8 - ((xi1 + 1) * (xi2 + 1) * (xi3 - 1)) / 8;
+    shapeFunctionDerivatives(0, 6) = ((xi2 + 1) * (xi3 + 1) * (xi1 + xi2 + xi3 - 2)) / 8 + ((xi1 + 1) * (xi2 + 1) * (xi3 + 1)) / 8;
+    shapeFunctionDerivatives(0, 7) = -((xi2 - 1) * (xi3 + 1) * (xi1 - xi2 + xi3 - 2)) / 8 - ((xi1 + 1) * (xi2 - 1) * (xi3 + 1)) / 8;
+    shapeFunctionDerivatives(0, 8) = -((xi2 * xi2 - 1) * (xi3 - 1)) / 4;
+    shapeFunctionDerivatives(0, 9) = ((xi3 * xi3 - 1) * (xi2 + 1)) / 4;
+    shapeFunctionDerivatives(0, 10) = ((xi2 * xi2 - 1) * (xi3 + 1)) / 4;
+    shapeFunctionDerivatives(0, 11) = -((xi3 * xi3 - 1) * (xi2 - 1)) / 4;
+    shapeFunctionDerivatives(0, 12) = ((xi2 * xi2 - 1) * (xi3 - 1)) / 4;
+    shapeFunctionDerivatives(0, 13) = -((xi3 * xi3 - 1) * (xi2 + 1)) / 4;
+    shapeFunctionDerivatives(0, 14) = -((xi2 * xi2 - 1) * (xi3 + 1)) / 4;
+    shapeFunctionDerivatives(0, 15) = ((xi3 * xi3 - 1) * (xi2 - 1)) / 4;
+    shapeFunctionDerivatives(0, 16) = -(xi1 * (xi2 - 1) * (xi3 - 1)) / 2;
+    shapeFunctionDerivatives(0, 17) = (xi1 * (xi2 + 1) * (xi3 - 1)) / 2;
+    shapeFunctionDerivatives(0, 18) = -(xi1*(xi2 + 1)*(xi3 + 1))/2;
+    shapeFunctionDerivatives(0, 19) = (xi1*(xi2 - 1)*(xi3 + 1))/2;
 
-    shapeFunctionDerivatives(2, 0) =((xi1 - 1)*(xi3 - 1)*(xi1 + xi2 + xi3 + 2))/8 + ((xi1 - 1)*(xi2 - 1)*(xi3 - 1))/8;
-    shapeFunctionDerivatives(2, 1) =((xi1 - 1)*(xi2 + 1)*(xi3 - 1))/8 - ((xi1 - 1)*(xi3 - 1)*(xi1 - xi2 + xi3 + 2))/8;
-    shapeFunctionDerivatives(2, 2) =((xi1 - 1)*(xi3 + 1)*(xi1 - xi2 - xi3 + 2))/8 - ((xi1 - 1)*(xi2 + 1)*(xi3 + 1))/8;
-    shapeFunctionDerivatives(2, 3) =- ((xi1 - 1)*(xi3 + 1)*(xi1 + xi2 - xi3 + 2))/8 - ((xi1 - 1)*(xi2 - 1)*(xi3 + 1))/8;
-    shapeFunctionDerivatives(2, 4) =- ((xi1 + 1)*(xi3 - 1)*(xi2 - xi1 + xi3 + 2))/8 - ((xi1 + 1)*(xi2 - 1)*(xi3 - 1))/8;
-    shapeFunctionDerivatives(2, 5) =- ((xi1 + 1)*(xi3 - 1)*(xi1 + xi2 - xi3 - 2))/8 - ((xi1 + 1)*(xi2 + 1)*(xi3 - 1))/8;
-    shapeFunctionDerivatives(2, 6) = ((xi1 + 1)*(xi3 + 1)*(xi1 + xi2 + xi3 - 2))/8 + ((xi1 + 1)*(xi2 + 1)*(xi3 + 1))/8;
-    shapeFunctionDerivatives(2, 7) = ((xi1 + 1)*(xi2 - 1)*(xi3 + 1))/8 - ((xi1 + 1)*(xi3 + 1)*(xi1 - xi2 + xi3 - 2))/8;
-    shapeFunctionDerivatives(2, 8) = -(xi2*(xi1 - 1)*(xi3 - 1))/2;
-    shapeFunctionDerivatives(2, 9) = ((xi3*xi3 - 1)*(xi1 - 1))/4;
-    shapeFunctionDerivatives(2, 10) = (xi2*(xi1 - 1)*(xi3 + 1))/2;
-    shapeFunctionDerivatives(2, 11) = -((xi3*xi3 - 1)*(xi1 - 1))/4;
-    shapeFunctionDerivatives(2, 12) = (xi2*(xi1 + 1)*(xi3 - 1))/2;
-    shapeFunctionDerivatives(2, 13) = -((xi3*2 - 1)*(xi1 + 1))/4;
-    shapeFunctionDerivatives(2, 14) = -(xi2*(xi1 + 1)*(xi3 + 1))/2;
-    shapeFunctionDerivatives(2, 15) = ((xi3*xi3 - 1)*(xi1 + 1))/4;
-    shapeFunctionDerivatives(2, 16) = -((xi1*xi1 - 1)*(xi3 - 1))/4;
-    shapeFunctionDerivatives(2, 17) = ((xi1*xi1 - 1)*(xi3 - 1))/4;
-    shapeFunctionDerivatives(2, 18) = -((xi1*xi1 - 1)*(xi3 + 1))/4;
-    shapeFunctionDerivatives(2, 19) = ((xi1*xi1 - 1)*(xi3 + 1))/4;
+    shapeFunctionDerivatives(1, 0) =((xi1 - 1)*(xi3 - 1)*(xi1 + xi2 + xi3 + 2))/8 + ((xi1 - 1)*(xi2 - 1)*(xi3 - 1))/8;
+    shapeFunctionDerivatives(1, 1) =((xi1 - 1)*(xi2 + 1)*(xi3 - 1))/8 - ((xi1 - 1)*(xi3 - 1)*(xi1 - xi2 + xi3 + 2))/8;
+    shapeFunctionDerivatives(1, 2) =((xi1 - 1)*(xi3 + 1)*(xi1 - xi2 - xi3 + 2))/8 - ((xi1 - 1)*(xi2 + 1)*(xi3 + 1))/8;
+    shapeFunctionDerivatives(1, 3) =- ((xi1 - 1)*(xi3 + 1)*(xi1 + xi2 - xi3 + 2))/8 - ((xi1 - 1)*(xi2 - 1)*(xi3 + 1))/8;
+    shapeFunctionDerivatives(1, 4) =- ((xi1 + 1)*(xi3 - 1)*(xi2 - xi1 + xi3 + 2))/8 - ((xi1 + 1)*(xi2 - 1)*(xi3 - 1))/8;
+    shapeFunctionDerivatives(1, 5) =- ((xi1 + 1)*(xi3 - 1)*(xi1 + xi2 - xi3 - 2))/8 - ((xi1 + 1)*(xi2 + 1)*(xi3 - 1))/8;
+    shapeFunctionDerivatives(1, 6) = ((xi1 + 1)*(xi3 + 1)*(xi1 + xi2 + xi3 - 2))/8 + ((xi1 + 1)*(xi2 + 1)*(xi3 + 1))/8;
+    shapeFunctionDerivatives(1, 7) = ((xi1 + 1)*(xi2 - 1)*(xi3 + 1))/8 - ((xi1 + 1)*(xi3 + 1)*(xi1 - xi2 + xi3 - 2))/8;
+    shapeFunctionDerivatives(1, 8) = -(xi2*(xi1 - 1)*(xi3 - 1))/2;
+    shapeFunctionDerivatives(1, 9) = ((xi3*xi3 - 1)*(xi1 - 1))/4;
+    shapeFunctionDerivatives(1, 10) = (xi2*(xi1 - 1)*(xi3 + 1))/2;
+    shapeFunctionDerivatives(1, 11) = -((xi3*xi3 - 1)*(xi1 - 1))/4;
+    shapeFunctionDerivatives(1, 12) = (xi2*(xi1 + 1)*(xi3 - 1))/2;
+    shapeFunctionDerivatives(1, 13) = -((xi3*2 - 1)*(xi1 + 1))/4;
+    shapeFunctionDerivatives(1, 14) = -(xi2*(xi1 + 1)*(xi3 + 1))/2;
+    shapeFunctionDerivatives(1, 15) = ((xi3*xi3 - 1)*(xi1 + 1))/4;
+    shapeFunctionDerivatives(1, 16) = -((xi1*xi1 - 1)*(xi3 - 1))/4;
+    shapeFunctionDerivatives(1, 17) = ((xi1*xi1 - 1)*(xi3 - 1))/4;
+    shapeFunctionDerivatives(1, 18) = -((xi1*xi1 - 1)*(xi3 + 1))/4;
+    shapeFunctionDerivatives(1, 19) = ((xi1*xi1 - 1)*(xi3 + 1))/4;
 
-    shapeFunctionDerivatives(3, 0) =((xi1 - 1)*(xi2 - 1)*(xi1 + xi2 + xi3 + 2))/8 + ((xi1 - 1)*(xi2 - 1)*(xi3 - 1))/8;
-    shapeFunctionDerivatives(3, 1) =- ((xi1 - 1)*(xi2 + 1)*(xi1 - xi2 + xi3 + 2))/8 - ((xi1 - 1)*(xi2 + 1)*(xi3 - 1))/8;
-    shapeFunctionDerivatives(3, 2) =((xi1 - 1)*(xi2 + 1)*(xi1 - xi2 - xi3 + 2))/8 - ((xi1 - 1)*(xi2 + 1)*(xi3 + 1))/8;
-    shapeFunctionDerivatives(3, 3) =((xi1 - 1)*(xi2 - 1)*(xi3 + 1))/8 - ((xi1 - 1)*(xi2 - 1)*(xi1 + xi2 - xi3 + 2))/8;
-    shapeFunctionDerivatives(3, 4) =- ((xi1 + 1)*(xi2 - 1)*(xi2 - xi1 + xi3 + 2))/8 - ((xi1 + 1)*(xi2 - 1)*(xi3 - 1))/8;
-    shapeFunctionDerivatives(3, 5) =((xi1 + 1)*(xi2 + 1)*(xi3 - 1))/8 - ((xi1 + 1)*(xi2 + 1)*(xi1 + xi2 - xi3 - 2))/8;
-    shapeFunctionDerivatives(3, 6) =((xi1 + 1)*(xi2 + 1)*(xi1 + xi2 + xi3 - 2))/8 + ((xi1 + 1)*(xi2 + 1)*(xi3 + 1))/8;
-    shapeFunctionDerivatives(3, 7) =- ((xi1 + 1)*(xi2 - 1)*(xi1 - xi2 + xi3 - 2))/8 - ((xi1 + 1)*(xi2 - 1)*(xi3 + 1))/8;
-    shapeFunctionDerivatives(3, 8) =-((xi2*xi2 - 1)*(xi1 - 1))/4;
-    shapeFunctionDerivatives(3, 9) =(xi3*(xi1 - 1)*(xi2 + 1))/2;
-    shapeFunctionDerivatives(3, 10) =((xi2*xi2 - 1)*(xi1 - 1))/4;
-    shapeFunctionDerivatives(3, 11) =-(xi3*(xi1 - 1)*(xi2 - 1))/2;
-    shapeFunctionDerivatives(3, 12) =((xi2*xi2 - 1)*(xi1 + 1))/4; 
-    shapeFunctionDerivatives(3, 13) =-(xi3*(xi1 + 1)*(xi2 + 1))/2;
-    shapeFunctionDerivatives(3, 14) =-((xi2*xi2 - 1)*(xi1 + 1))/4;
-    shapeFunctionDerivatives(3, 15) =(xi3*(xi1 + 1)*(xi2 - 1))/2;
-    shapeFunctionDerivatives(3, 16) =-((xi1*xi1 - 1)*(xi2 - 1))/4;
-    shapeFunctionDerivatives(3, 17) =((xi1*xi1 - 1)*(xi2 + 1))/4;
-    shapeFunctionDerivatives(3, 18) =-((xi1*xi1 - 1)*(xi2 + 1))/4;
-    shapeFunctionDerivatives(3, 19) =((xi1*xi1 - 1)*(xi2 - 1))/4;
+    shapeFunctionDerivatives(2, 0) =((xi1 - 1)*(xi2 - 1)*(xi1 + xi2 + xi3 + 2))/8 + ((xi1 - 1)*(xi2 - 1)*(xi3 - 1))/8;
+    shapeFunctionDerivatives(2, 1) =- ((xi1 - 1)*(xi2 + 1)*(xi1 - xi2 + xi3 + 2))/8 - ((xi1 - 1)*(xi2 + 1)*(xi3 - 1))/8;
+    shapeFunctionDerivatives(2, 2) =((xi1 - 1)*(xi2 + 1)*(xi1 - xi2 - xi3 + 2))/8 - ((xi1 - 1)*(xi2 + 1)*(xi3 + 1))/8;
+    shapeFunctionDerivatives(2, 3) =((xi1 - 1)*(xi2 - 1)*(xi3 + 1))/8 - ((xi1 - 1)*(xi2 - 1)*(xi1 + xi2 - xi3 + 2))/8;
+    shapeFunctionDerivatives(2, 4) =- ((xi1 + 1)*(xi2 - 1)*(xi2 - xi1 + xi3 + 2))/8 - ((xi1 + 1)*(xi2 - 1)*(xi3 - 1))/8;
+    shapeFunctionDerivatives(2, 5) =((xi1 + 1)*(xi2 + 1)*(xi3 - 1))/8 - ((xi1 + 1)*(xi2 + 1)*(xi1 + xi2 - xi3 - 2))/8;
+    shapeFunctionDerivatives(2, 6) =((xi1 + 1)*(xi2 + 1)*(xi1 + xi2 + xi3 - 2))/8 + ((xi1 + 1)*(xi2 + 1)*(xi3 + 1))/8;
+    shapeFunctionDerivatives(2, 7) =- ((xi1 + 1)*(xi2 - 1)*(xi1 - xi2 + xi3 - 2))/8 - ((xi1 + 1)*(xi2 - 1)*(xi3 + 1))/8;
+    shapeFunctionDerivatives(2, 8) =-((xi2*xi2 - 1)*(xi1 - 1))/4;
+    shapeFunctionDerivatives(2, 9) =(xi3*(xi1 - 1)*(xi2 + 1))/2;
+    shapeFunctionDerivatives(2, 10) =((xi2*xi2 - 1)*(xi1 - 1))/4;
+    shapeFunctionDerivatives(2, 11) =-(xi3*(xi1 - 1)*(xi2 - 1))/2;
+    shapeFunctionDerivatives(2, 12) =((xi2*xi2 - 1)*(xi1 + 1))/4; 
+    shapeFunctionDerivatives(2, 13) =-(xi3*(xi1 + 1)*(xi2 + 1))/2;
+    shapeFunctionDerivatives(2, 14) =-((xi2*xi2 - 1)*(xi1 + 1))/4;
+    shapeFunctionDerivatives(2, 15) =(xi3*(xi1 + 1)*(xi2 - 1))/2;
+    shapeFunctionDerivatives(2, 16) =-((xi1*xi1 - 1)*(xi2 - 1))/4;
+    shapeFunctionDerivatives(2, 17) =((xi1*xi1 - 1)*(xi2 + 1))/4;
+    shapeFunctionDerivatives(2, 18) =-((xi1*xi1 - 1)*(xi2 + 1))/4;
+    shapeFunctionDerivatives(2, 19) =((xi1*xi1 - 1)*(xi2 - 1))/4;
+
+    shapeFunctionDerivatives0=shapeFunctionDerivatives.t();
 }

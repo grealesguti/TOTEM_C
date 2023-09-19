@@ -82,7 +82,9 @@ void BCInit::boundaryConditions() {
             std::cout << "HEAT INTEGRATION." << std::endl;
 
             // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
-            int nodes_per_element=mesh_.getNumNodesForElement(elements[elementindexVector[0]]);// DEFAULT
+            std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(elements[elementindexVector[0]]);
+            int nodes_per_element = nodesperelement_etype.first; // Number of nodes
+            int etype = nodesperelement_etype.second; // Element type    
             std::cout << " nodes_per_element " <<nodes_per_element<< std::endl;
 
             arma::mat element_load_vector(nodes_per_element, 1, arma::fill::zeros);
@@ -134,16 +136,9 @@ void BCInit::boundaryConditions() {
 
 mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int element) {
     // Define variables
-    std::size_t elementTag = element;    std::vector<int> nodeTags_el;
-    int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
-    // https://docs.juliahub.com/GmshTools/9rYp5/0.4.2/element_types/
-    int nodes_per_element=8;// DEFAULT
-    if(etype==3){// 4-node quadrangle
-        nodes_per_element = 4; // Total number of nodes per element
-    }else if(etype==16){// 8-node second order quadrangle
-        nodes_per_element = 8; // Total number of nodes per element
-    }
-
+    std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(element);
+    int nodes_per_element = nodesperelement_etype.first; // Number of nodes
+    int etype = nodesperelement_etype.second; // Element type    
     arma::vec shapeFunctions(nodes_per_element,1);          // Shape functions as a 4x1 vector
     mat shapeFunctionDerivatives(nodes_per_element, 2); // Shape function derivatives
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
@@ -161,13 +156,7 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
     }
     // Calculate shape functions and their derivatives
     //std::cout << "Get shape functions and derivatives. " << std::endl;
-    if(etype==3){// 4-node quadrangle
-        shapeFunctions = elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
-        elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
-    }else if(etype==16){// 8-node second order quadrangle
-        elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta,shapeFunctions);
-        elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
-    }
+    mesh_.selectShapeFunctionsAndDerivatives(etype,xi,eta,-1,shapeFunctions,shapeFunctionDerivatives);
 
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
