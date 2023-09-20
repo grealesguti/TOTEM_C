@@ -50,8 +50,8 @@ public:
     int getNumElements() const {        return numelem;    }
     int getNumNodes() const {        return numnodes;    }
     int getNumAllNodes() const {        return numallnodes;    }
-    const std::vector<std::size_t>& getElementTags() const {        return elementTags;    }
-    const std::vector<std::size_t>& getNodeTags() const {        return nodeTags;    }
+    const std::vector<std::size_t> getElementTags() const {        return elementTags;    }
+    const std::vector<std::size_t> getNodeTags() const {        return nodeTags;    }
     const std::vector<double>& getCoordinates() const {        return coord;    }
     const double getCoordi(int i) const {        return coord[i];    }
     const int getelementNodeTagi(int i) const {        return elementNodeTags[i];    }

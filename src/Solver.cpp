@@ -20,7 +20,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 
 }
 
-void Solver::Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double> R_reduced) {
+    void Solver::Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double> R_reduced) {
     std::cout << "### START ASSEMBLY." << std::endl;
     int dof_per_node;
     if(inputReader_.getPhysics()=="thermoelectricity"){
@@ -28,7 +28,7 @@ void Solver::Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double
     }else{
         dof_per_node = 2;// by default
     } 
-    const std::vector<std::size_t>& elementTags = mesh_.getElementTags();
+    const std::vector<std::size_t> elementTags = mesh_.getElementTags();
     std::size_t num_of_elements = elementTags.size();
 
     std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(elementTags[0]);
