@@ -1,0 +1,26 @@
+# Input File for FEM Simulation with Mesh Reference
+
+## Mesh mesh_file <name.msh> <physical_entity_final_mesh_name>
+mesh_file Benchmarks/ElementBenchmarks/Benchmark2_QUADSERENDIPITYHEX_PARAM.msh Volume
+output all
+physics thermoelectricity
+solver NR
+
+## MATERIAL PROPERTIES: material <volumename> \n <propertyname> <value> \n ... 
+##
+material Volume
+Seebeck 0.00015
+ThermalConductivity 1.2
+ElectricalConductivity 1220
+YoungsModulus 1e6
+PoissonRatio 0.33
+
+## Boundary Conditions: bc <boundaryname> <surfacename> <value>
+bc Voltage minY 0.05
+bc Voltage maxY 0.0
+bc Temperature minY 275
+bc heat_n maxY 1000 
+
+## Output Options
+## output <data> <path/outputname>
+##output T dataT.vtk
