@@ -13,12 +13,9 @@
 #include <gmsh.h>
 #include <armadillo>
 
-#include <cstdlib>
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
+
 
 int main(int argc, char* argv[]) {
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | -_CRTDBG_LEAK_CHECK_DF);
     //#pragma omp parallel
     //{
     //    printf("Hello World... from thread = %d\n", omp_get_thread_num());
@@ -89,7 +86,6 @@ int main(int argc, char* argv[]) {
         psp.WriteUnstructuredMeshToVTK();
     }
 
-    _CrtDumpMemoryLeaks();
 
     return 0;
 }

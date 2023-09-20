@@ -2,26 +2,26 @@
 	"version": "2.0.0",
 	"tasks": [
 	  {
-		"type": "cppbuild",
-		"label": "C/C++: g++.exe build all files in src",
-		"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+		"type": "shell",
+		"label": "C/C++: g++ build all files in src",
+		"command": "g++",
 		"args": [
-			"-fdiagnostics-color=always",
-			"-g3",
-			"-Wall",
-			"${workspaceFolder}\\*.cpp",
-			"${workspaceFolder}\\src\\*.cpp",
-			"${workspaceFolder}\\src\\*.h",
-			//"-IC:\\msys64\\mingw64\\include\\vtk\\",
-			"-lgmsh",
-			//"-lvtksys",
-			//"-lvtkIOXML",
-			"-larmadillo",
-			"-llapack",
-			"-lopenblas",
-			"-o",
-			"${workspaceFolder}\\TOTEM.exe"
-		  ],
+		  "-fdiagnostics-color=always",
+		  "-g3",
+		  "-Wall",
+		  "${workspaceFolder}/*.cpp",
+		  "${workspaceFolder}/src/*.cpp",
+		  "${workspaceFolder}/src/*.h",
+		  "-I/usr/include/eigen3/",  // Specify the correct Eigen include path
+		  "-I/usr/include/",
+		  "-I/usr/include/",
+		  "-o",
+		  "${workspaceFolder}/TOTEM",
+		  "-lgmsh",
+		  "-larmadillo",
+		  "-llapack",
+		  "-lopenblas"
+		],
 		"options": {
 		  "cwd": "${workspaceFolder}"
 		},
@@ -32,11 +32,8 @@
 		  "kind": "build",
 		  "isDefault": true
 		},
-		"detail": "compiler: C:\\msys64\\mingw64\\bin\\g++.exe",
-		"dependsOn": [
-		  "copyLibrary"
-		]
-	  },
+		"detail": "compiler: g++"
+	  }
 	]
   }
   

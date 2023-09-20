@@ -23,7 +23,7 @@ public:
     void reinitializeGmsh();
 
     // Get Physical entities
-    std::vector<long long unsigned int> getNodesForPhysicalGroup(const std::string& desiredGroupName);
+    std::vector< long unsigned int> getNodesForPhysicalGroup(const std::string& desiredGroupName);
     std::vector<std::size_t> getElementsForPhysicalGroup(const std::string& desiredGroupName);
 
     // Setters

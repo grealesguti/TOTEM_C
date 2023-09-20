@@ -111,7 +111,7 @@ void Mesh::getHexahedralElements() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<long long unsigned int> Mesh::getNodesForPhysicalGroup(const std::string& desiredGroupName) {
+std::vector<long unsigned int> Mesh::getNodesForPhysicalGroup(const std::string& desiredGroupName) {
     int matchedDimension;
 
     std::vector<std::pair<int, int>> dimTags;
@@ -135,17 +135,19 @@ std::vector<long long unsigned int> Mesh::getNodesForPhysicalGroup(const std::st
             break; // Exit the loop when a match is found
         }
     }
-    std::vector<long long unsigned int> nodeTagsgroup; // Declare a non-reference vector
+    std::vector<double> coord;    // Declare a vector to store coordinates
+   std::vector<long unsigned int> nodeTagsgroup;
 
     if (matchingTag != -1) {
         // Get the node tags and coordinates associated with the physical entity tag
-        std::vector<double> coord;
         gmsh::model::mesh::getNodesForPhysicalGroup(matchedDimension, matchingTag, nodeTagsgroup, coord);
-        if (nodeTagsgroup.empty()) {
-            std::cout << "Warning!!! No nodes found for the physical group with name: " << desiredGroupName << std::endl;
-        }else {std::cout << "Found nodes for group: "<< desiredGroupName<< std::endl;}
 
-    } else {
+        if (nodeTags.empty()) {
+            std::cout << "Warning!!! No nodes found for the physical group with matching tag: " << matchingTag << std::endl;
+        } else {
+            std::cout << "Found nodes for matching tag: " << matchingTag << std::endl;
+        }
+    }else {
         std::cout << "Warning!!! No matching physical group found with name: " << desiredGroupName << std::endl;
     }
         return nodeTagsgroup; // Return an empty vector to indicate no match
