@@ -1,7 +1,10 @@
 *.exe
-*.msh
 *.vtk
-*.txt
 *.o
+<<<<<<< HEAD
 /src/BCInit.o
 /src/Elements.o
+=======
+src/*.o
+input.txt
+>>>>>>> Ubuntu3
