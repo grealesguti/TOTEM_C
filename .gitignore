@@ -3,3 +3,5 @@
 *.vtk
 *.txt
 *.o
+/src/BCInit.o
+/src/Elements.o
