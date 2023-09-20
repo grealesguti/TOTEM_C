@@ -89,8 +89,8 @@ void BCInit::boundaryConditions() {
 
             arma::mat element_load_vector(nodes_per_element, 1, arma::fill::zeros);
             // Get and print the number of threads
-            int num_threads = omp_get_max_threads();
-            std::cout << "Number of threads to be used: " << num_threads << std::endl;
+            //int num_threads = omp_get_max_threads();
+            //std::cout << "Number of threads to be used: " << num_threads << std::endl;
 
             //#pragma omp parallel for shared(loadVector_) private(element_load_vector)
             for (std::size_t elementindex : elementindexVector) {

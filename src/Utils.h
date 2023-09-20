@@ -34,20 +34,7 @@ public:
     template<typename T>
     static bool writeDataToFile(const T& data, const std::string& filename, bool append = false); // Added 'bool append' parameter
     // Function to delete all files in a given folder path
-    static bool deleteFilesInFolder(const std::string& folderPath) {
-        try {
-            std::filesystem::directory_iterator it(folderPath);
-            for (const auto& entry : it) {
-                if (std::filesystem::is_regular_file(entry)) {
-                    std::filesystem::remove(entry.path());
-                }
-            }
-            return true; // Deletion successful
-        } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
-            return false; // Deletion failed
-        }
-    }
+    void deleteFilesInFolder(const std::string& folderPath);
     static arma::mat calculate_T3(const arma::mat& nodes);
     arma::mat calculate_inverse_T3(const arma::mat& nodes);
     static arma::sp_mat spmat_submat(const arma::sp_mat& spmatrix, const std::vector<int>& row_indices, const std::vector<int>& col_indices);

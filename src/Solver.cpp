@@ -20,7 +20,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 
 }
 
-Solver::SparseSystem Solver::Assembly() {
+void Solver::Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double> R_reduced) {
     std::cout << "### START ASSEMBLY." << std::endl;
     int dof_per_node;
     if(inputReader_.getPhysics()=="thermoelectricity"){
@@ -81,14 +81,14 @@ Solver::SparseSystem Solver::Assembly() {
                     cc += 1;
                 }
                // std::cout<<"-Desired Output:"<<std::endl;
-                std::cout<<inputReader_.getDesiredOutput()<<std::endl;
+                //std::cout<<inputReader_.getDesiredOutput()<<std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
                     utils_.writeDataToFile(nodeTags_el,"Outputs/KTnodeTags_el.txt",true);
                     utils_.writeDataToFile(element_dofs,"Outputs/KTelement_dofs.txt",true);
                     utils_.writeDataToFile(element_dof_values,"Outputs/KTelement_dof_values.txt",true);
                 }
                 // if physics == 
-                //std::cout << "-element integration "<< elementTag << std::endl;
+                std::cout << "-element integration "<< elementTag << std::endl;
                 Utils::IntegrationResult elementresult = utils_.gaussIntegrationK(3, 3, elementTag, mesh_, element_dof_values, thermoelectricityintegrationFunction_);
                 //std::cout << "-element "<< elementTag<< " integrated." << std::endl;
 
@@ -159,26 +159,26 @@ Solver::SparseSystem Solver::Assembly() {
   //std::cout << "-init sparse. " <<mesh_.getNumAllNodes()*2 << std::endl;
   KsparseMatrix.setFromTriplets(triplets.begin(), triplets.end());
   //std::cout << "-made Sparse from eigen." << std::endl;
-    // Create CSR sparse matrix
-
     
     // reduce the system and store in the return structure
-    SparseSystem result;
     // Convert std::vector  <int> to arma::uvec
-    result.KsubMatrix =  Solver::reduceSystem(KsparseMatrix);
+    Solver::reduceSystem(KsparseMatrix,KsubMatrix);
     //std::cout << " -K Submatrix retrieved." << std::endl;
     // Resize the vector to the desired size and initialize with zeros
-    result.R_reduced.resize(freedofidxs_.size(), 0.0);
+    R_reduced.resize(freedofidxs_.size(), 0.0);
     for (int i = 0; i < freedofidxs_.size(); i++) {
-                    result.R_reduced[i] = Full_Ra[freedofidxs_[i]];
-    }
+                if (abs(Full_Ra[freedofidxs_[i]])>1e-20){
+                    R_reduced[i] = Full_Ra[freedofidxs_[i]];
+                }
+    }           
 
     //std::cout << " -R Submatrix retrieved." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(result.KsubMatrix,"Outputs/KTintegration_reducedK.txt",true);
-                    utils_.writeDataToFile(result.R_reduced,"Outputs/KTintegration_reducedRa.txt",true);
+                    utils_.writeDataToFile(KsubMatrix,"Outputs/KTintegration_reducedK.txt",true);
+                    utils_.writeDataToFile(R_reduced,"Outputs/KTintegration_reducedRa.txt",true);
                 }
-    return result;
+    std::cout << " assembly_ return." << std::endl;
+    return;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -287,6 +287,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
 
     arma::mat dqdv = -Da * De * Th * shapeFunctionDerivatives.t();
     //std::cout << "dqdv" << std::endl;
+    std::cout << "thermoel_matrix addition" << std::endl;
 
     // Perform the integration for RT, RV, K11, K12, K21, K22
     RT += (-shapeFunctionDerivatives * qe + shapeFunctions * je.t() * shapeFunctionDerivatives.t() * Vee);
@@ -322,11 +323,11 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     int numRowsKJ = K11.n_rows + K21.n_rows;
     int numColsKJ = K11.n_cols + K12.n_cols;
     int numRowsR = RT.n_rows + RV.n_rows;
+    std::cout << "thermoel_matrixes larger" << std::endl;
 
     // Initialize KV and RT matrices with zeros
     arma::mat KV(numRowsKJ, numColsKJ, arma::fill::zeros);
     arma::mat R(numRowsR, 1, arma::fill::zeros);
-   // std::cout << "matrixes larger" << std::endl;
 
     // Fill in the KV matrix with K11, K12, K21, and K22
     KV.submat(0, 0, K11.n_rows - 1, K11.n_cols - 1) = K11;
@@ -350,11 +351,12 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
         utils_.writeDataToFile(R,"Outputs/KTel_R.txt",true);
     }
     // Return the heat flow as a 4x1 Armadillo matrix
+    std::cout << "thermoel_return" << std::endl;
     return result;
 }
 ///////////////////////////////////////////////////////////////////
 
-Eigen::SparseMatrix<double> Solver::reduceSystem(const Eigen::SparseMatrix<double>& K) {
+void Solver::reduceSystem(const Eigen::SparseMatrix<double>& K, Eigen::SparseMatrix<double>& reducedK) {
      //       std::cout << "-Reducing system " << std::endl;
 
     int numDofs = K.rows();
@@ -370,29 +372,32 @@ Eigen::SparseMatrix<double> Solver::reduceSystem(const Eigen::SparseMatrix<doubl
     //        std::cout << "-dofmap " << std::endl;
 
     // Create the reduced sparse matrix
-    Eigen::SparseMatrix<double> reducedK(numFixedDofs, numFixedDofs);
     for (int k = 0; k < K.outerSize(); ++k) {
         for (Eigen::SparseMatrix<double>::InnerIterator it(K, k); it; ++it) {
             int row = it.row();
             int col = it.col();
             if (dofMap[row] != -1 && dofMap[col] != -1) {
-                reducedK.insert(dofMap[row], dofMap[col]) = it.value();
+                if(abs(it.value())>1e-20){
+                    reducedK.insert(dofMap[row], dofMap[col]) = it.value();
+                }
             }
         }
     }
     //        std::cout << "-loop " << std::endl;
 
     reducedK.makeCompressed();
-
-    return reducedK;
 }
 /////////////////////////////////////////////////////////////
-Eigen::VectorXd Solver::solveSparseSystem(const SparseSystem& system) {
-    // Extract the submatrix and reduced right-hand side
-    Eigen::SparseMatrix<double> Ksub = system.KsubMatrix;
-    Eigen::VectorXd Rreduced(system.R_reduced.size());
-    for (size_t i = 0; i < system.R_reduced.size(); ++i) {
-        Rreduced(i) = system.R_reduced[i];
+void Solver::solveSparseSystem(
+    const Eigen::SparseMatrix<double, 0, int>& KsubMatrix,
+    const std::vector<double>& R_reduced,
+    Eigen::VectorXd& solution){    // Extract the submatrix and reduced right-hand side
+        std::cout << "Solving system" << std::endl;
+
+    Eigen::SparseMatrix<double> Ksub = KsubMatrix;
+    Eigen::VectorXd Rreduced(R_reduced.size());
+    for (size_t i = 0; i < R_reduced.size(); ++i) {
+        Rreduced(i) = R_reduced[i];
     }
 
     // Set the desired number of threads for Eigen
@@ -410,7 +415,7 @@ Eigen::VectorXd Solver::solveSparseSystem(const SparseSystem& system) {
     }
 
     // Solve the system
-    Eigen::VectorXd solution = solver.solve(Rreduced);
+    solution = solver.solve(Rreduced);
 
     if (solver.info() != Eigen::Success) {
         // Solve failed
@@ -422,7 +427,6 @@ Eigen::VectorXd Solver::solveSparseSystem(const SparseSystem& system) {
     // Reset the number of threads to its default value (optional)
     Eigen::setNbThreads(0);
 
-    return solution;
 }
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -430,6 +434,7 @@ Eigen::VectorXd Solver::solveSparseSystem(const SparseSystem& system) {
 // make another function only as solver that takes the assembly and can choose btw modified NR, or normal and returns successive errors etc...
 // This is the function to call from main after initialization of the class. This function also identifies the physics to use
 */
+/*
 double Solver::runNewtonRaphson() {
     // Initialize some parameters and initial guess
     double tolerance = 1e-6;
@@ -468,9 +473,9 @@ double Solver::runNewtonRaphson() {
 
     // If we reach here, the Newton-Raphson method did not converge
     throw std::runtime_error("Newton-Raphson did not converge.");
-}
+}*/
 ////////////////////////////////////////////////////////////////////////////////
-
+     /*
 double Solver::runArcLengthSolver() {
     // Initialize some parameters
     double tolerance = 1e-6;
@@ -482,7 +487,7 @@ double Solver::runArcLengthSolver() {
     if (inputReader_.getDesiredOutput() == "all") {
         utils_.writeDataToFile(soldofs_, "Outputs/AL_soldofs_" + std::to_string(0) + ".txt", true);
     }
-     /*
+
     for (int iter = 0; iter < maxIterations; ++iter) {
         // Assembly the system matrix
         SparseSystem system = Assembly();
@@ -526,11 +531,11 @@ double Solver::runArcLengthSolver() {
 
     // If we reach here, the arc-length solver did not converge
     throw std::runtime_error("Arc-Length solver did not converge.");
-    */
-    return 0;
-}
-////////////////////////////////////////////////////////////////////////////////
 
+    return 0;
+}*/
+////////////////////////////////////////////////////////////////////////////////
+/*
 double Solver::runModifiedNewtonRaphsonSolver(bool applyLoadIncrements) {
     // Initialize some parameters
     double tolerance = 1e-6;
@@ -575,8 +580,9 @@ double Solver::runModifiedNewtonRaphsonSolver(bool applyLoadIncrements) {
 
     // If we reach here, the Modified Newton-Raphson method did not converge
     throw std::runtime_error("Modified Newton-Raphson did not converge.");
-}
+}*/
 ////////////////////////////////////////////////////////////////////////////////
+/*
 double Solver::runNewtonRaphsonWithUniformIncrements(const Eigen::VectorXd& totalLoadVector, int numUniformIncrements) {
     // Calculate uniform load increments
     Eigen::VectorXd uniformLoadIncrement = totalLoadVector / numUniformIncrements;
@@ -612,7 +618,7 @@ double Solver::runNewtonRaphsonWithUniformIncrements(const Eigen::VectorXd& tota
 
     // Return the total residual over all increments
     return totalResidual;
-}
+}*/
 
 /*
 // Function to decide and run the solver

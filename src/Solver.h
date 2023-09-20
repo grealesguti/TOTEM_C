@@ -23,9 +23,12 @@ public:
     
     // SOLVER FUNCTIONS
     // Function to perform assembly and return R_b and KJ_b
-    SparseSystem Assembly();
-    Eigen::SparseMatrix<double> reduceSystem(const Eigen::SparseMatrix<double>& K);
-    Eigen::VectorXd solveSparseSystem(const SparseSystem& system);
+    void Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double> R_reduced);
+    void reduceSystem(const Eigen::SparseMatrix<double>& K, Eigen::SparseMatrix<double>& reducedK);
+    void solveSparseSystem(
+        const Eigen::SparseMatrix<double>& KsubMatrix,
+        const std::vector<double>& R_reduced,
+        Eigen::VectorXd& solution);
     double runNewtonRaphson(); // Return both the solution and final residual
     std::vector<double> getAllSolDofs() const {return soldofs_;};
     double getAllSolDof(int i) const {return soldofs_[i];};

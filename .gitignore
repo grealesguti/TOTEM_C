@@ -2,3 +2,4 @@
 *.msh
 *.vtk
 *.txt
+*.o

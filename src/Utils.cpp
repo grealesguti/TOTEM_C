@@ -372,6 +372,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
                         natcoords(1, 0) = gaussPoints(j, 0);
                         natcoords(2, 0) = gaussPoints(k, 0);
                         Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag);
+                        std::cout << "utils_integrand addition." << std::endl;
                         R += localResult.R * weights(i, 0) * weights(j, 0) * weights(k, 0);
                         KT += localResult.KT * weights(i, 0) * weights(j, 0) * weights(k, 0);
                     }
@@ -602,3 +603,19 @@ arma::sp_mat Utils::spmat_submat(const arma::sp_mat& spmatrix, const std::vector
 
     return csr_matrix;
 }
+
+////////////////////////////////////////////
+    void Utils::deleteFilesInFolder(const std::string& folderPath) {
+        try {
+            std::filesystem::directory_iterator it(folderPath);
+            for (const auto& entry : it) {
+                if (std::filesystem::is_regular_file(entry)) {
+                    std::filesystem::remove(entry.path());
+                }
+            }
+            return; // Deletion successful
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return; // Deletion failed
+        }
+    }
