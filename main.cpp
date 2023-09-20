@@ -58,6 +58,8 @@ int main(int argc, char* argv[]) {
     Eigen::SparseMatrix<double> reducedK(numFreeDofs, numFreeDofs);
     std::vector<double> reducedR(numFreeDofs, 0.0); // Initialize with size and value 0.0
     Eigen::VectorXd solution;    solution.resize(numFreeDofs);    solution.setZero();    // Assembly
+    //std::shared_ptr<Eigen::SparseMatrix<double>> reducedK = std::make_shared<Eigen::SparseMatrix<double>>();
+    //std::shared_ptr<std::vector<double>> reducedR = std::make_shared<std::vector<double>>();
 
     // Initialize solver and assembly
     Solver solver(reader, mesh, BC);
