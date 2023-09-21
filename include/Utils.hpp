@@ -6,7 +6,7 @@
 #include <vector>
 #include <armadillo>
 #include <functional>
-#include "Mesh.h"
+#include "Mesh.hpp"
 #include <filesystem> // Include the filesystem header
 #include <Eigen/Dense>
 #include <Eigen/Sparse>

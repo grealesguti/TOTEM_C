@@ -2,14 +2,14 @@
 #define MESH_H
 
 
-#include "InputReader.h"
+#include "InputReader.hpp"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
 #include <vector>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <armadillo>
-#include "Elements.h"
+#include "Elements.hpp"
 
 
 

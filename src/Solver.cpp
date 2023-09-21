@@ -1,4 +1,4 @@
-#include "Solver.h"
+#include "Solver.hpp"
 using namespace arma;
 
 Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)

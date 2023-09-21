@@ -1,8 +1,8 @@
 #ifndef POSTPROCESSING_H
 #define POSTPROCESSING_H
 
-#include "InputReader.h"
-#include "Mesh.h"
+#include "InputReader.hpp"
+#include "Mesh.hpp"
 
 #include <iostream>
 #include <vector>
