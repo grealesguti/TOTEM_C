@@ -1,6 +1,6 @@
 CXX := g++
 CXXFLAGS := -fdiagnostics-color=always -g3 -Wall -fopenmp
-INCLUDES := -I/usr/include/eigen3
+INCLUDES := -I/usr/include/eigen3/ -I/usr/include/ -I/usr/include/eigen3/Eigen
 
 # Update the library paths accordingly
 LDFLAGS := -L/usr/lib

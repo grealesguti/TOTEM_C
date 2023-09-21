@@ -8,8 +8,8 @@
 #include <functional>
 #include "Mesh.h"
 #include <filesystem> // Include the filesystem header
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 
 class Utils {
 public:

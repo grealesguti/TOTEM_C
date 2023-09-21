@@ -8,8 +8,8 @@
 #include "BCInit.h"
 #include "Mesh.h"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 
 class Solver {
 public:
