@@ -76,8 +76,11 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                 for (int nodeTag : nodeTags_el) {
                     element_dofs[cc] = nodeTag * dof_per_node;
                     element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
-                    element_dof_values[cc] = soldofs_[ nodeTag * dof_per_node];
-                    element_dof_values[cc + nodes_per_element]= soldofs_[ nodeTag * dof_per_node + 1];
+                    // FIXME (Parche temporal) Find out why some values are out of range and use methods like insert, at, an so on
+                    if (nodeTag*dof_per_node+1<soldofs_.size()) {
+                        element_dof_values[cc] = soldofs_[ nodeTag * dof_per_node];
+                        element_dof_values[cc + nodes_per_element]= soldofs_[ nodeTag * dof_per_node + 1];
+                    }
                     cc += 1;
                 }
                // std::cout<<"-Desired Output:"<<std::endl;
