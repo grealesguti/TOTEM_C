@@ -1,4 +1,4 @@
-#include "PostProcessing.h"
+#include "PostProcessing.hpp"
 /*
 #include <vtkPoints.h>
 #include <vtkCellArray.h>

@@ -1,4 +1,4 @@
-#include "Utils.h"
+#include "Utils.hpp"
 
 using namespace arma;
 
@@ -36,13 +36,13 @@ void Utils::getGaussWeightsAndPoints(int order, mat& weights, mat& gaussPoints) 
         // 14-point Gauss integration rule.
         double cor = 0.335180055401662;
         double cen = 0.886426592797784;
-        
+
         mat G14 = {
             {-cor, -cor, -cor, -cor, +cor, +cor, +cor, +cor, -cen, cen, 0.0, 0.0, 0.0, 0.0},
             {-cor, -cor, +cor, +cor, -cor, -cor, +cor, +cor, 0.0, 0.0, -cen, cen, 0.0, 0.0},
             {-cor, +cor, -cor, +cor, -cor, +cor, -cor, +cor, 0.0, 0.0, 0.0, 0.0, -cen, cen}
         };
-        
+
         vec W14(order);
         W14.subvec(0, 7).fill(cor);
         W14.subvec(8, 13).fill(cen);
@@ -94,7 +94,7 @@ arma::mat Utils::TransformCoordinates(const arma::mat& cooro) {
         thetaz0deg = thetaz0 * 180 / arma::datum::pi;
         thetay1 = -thetay1;
     }
-    
+
     //std::cout << "create transformation matrixes" << std::endl;
     // Create transformation matrices Gz0 and Gy1
     arma::mat Gz0 = {{std::cos(thetaz0), -std::sin(thetaz0), 0},
@@ -127,7 +127,7 @@ arma::mat Utils::TransformCoordinates(const arma::mat& cooro) {
 
 
 void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<mat(const mat& natcoords,const mat& coords, double value, int element)> func, mat& result) {
-    
+
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
         result = zeros<mat>(1, 1); // Initialize result to a 1x1 matrix with zero value.
@@ -135,7 +135,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
     }
     std::pair<int, int> nodesperelement_etype = mesh.getNumNodesForElement(elementTag);
     int nodes_per_element = nodesperelement_etype.first; // Number of nodes
-    int etype = nodesperelement_etype.second; // Element type    
+    int etype = nodesperelement_etype.second; // Element type
 
     mat weights;
     mat gaussPoints;
@@ -231,7 +231,7 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
                         // Create a 3x1 matrix with gaussPoints(i, 0), gaussPoints(j, 0), and gaussPoints(k, 0)
                         // Explicitly use the arma::operator* function for multiplication
                         f = arma::operator*(func(natcoords, coordinates_tr_XY, bcvalue,elementTag), weights(i, 0) * weights(j, 0));
-                        result += f;            
+                        result += f;
              }
         }
     } else if (dimension == 3) {
@@ -274,7 +274,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     Mesh mesh,
     arma::vec element_dof_values,
     std::function<Utils::IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag)> func
-) {    
+) {
     Utils::IntegrationResult result; // Create a struct to hold KT and R
 
     if (dimension < 1 || order < 1) {
@@ -285,7 +285,7 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     }
     std::pair<int, int> nodesperelement_etype = mesh.getNumNodesForElement(elementTag);
     int nodes_per_element = nodesperelement_etype.first; // Number of nodes
-    int etype = nodesperelement_etype.second; // Element type    
+    int etype = nodesperelement_etype.second; // Element type
 
     int dof_per_node = element_dof_values.size()/nodes_per_element; // Assuming 2 degrees of freedom per node
     int matrixdofs=element_dof_values.size();
@@ -392,6 +392,82 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
 }
 
 //////////////////////////////////////////////////////////////////////////////////
+bool save(std::ofstream& file, const arma::sp_mat& data) {
+    std::cerr << "Error: Writing sparse matrices in ASCII format is not supported." << std::endl;
+    return false;
+}
+bool save(std::ofstream& file, const arma::mat& data) {
+    // For Armadillo dense data (vector, matrix, or uvec)
+    data.save(file, arma::raw_ascii);
+
+    return true;
+}
+bool save(std::ofstream& file, const arma::vec& data) {
+    // For Armadillo dense data (vector, matrix, or uvec)
+    data.save(file, arma::raw_ascii);
+
+    return true;
+}
+bool save(std::ofstream& file, const arma::uvec& data) {
+    // For Armadillo dense data (vector, matrix, or uvec)
+    data.save(file, arma::raw_ascii);
+
+    return true;
+}
+bool save(std::ofstream& file, const arma::umat& data) {
+    // For Armadillo dense data (vector, matrix, or uvec)
+    data.save(file, arma::raw_ascii);
+
+    return true;
+}
+
+bool save(std::ofstream& file, const std::vector<double>& data) {
+    for (const auto& item : data) {
+        file << item << " ";
+    }
+
+    return true;
+}
+bool save(std::ofstream& file, const std::vector<int>& data) {
+    for (const auto& item : data) {
+        file << item << " ";
+    }
+
+    return true;
+}
+
+bool save(std::ofstream& file, const std::vector<Eigen::Triplet<double>>& data) {
+    // For std::vector<Eigen::Triplet<double>> (sparse matrix in triplet format)
+    for (const auto& triplet : data) {
+        file << triplet.row() << " " << triplet.col() << " " << triplet.value() << std::endl;
+    }
+
+    return true;
+}
+
+bool save(std::ofstream& file, const Eigen::SparseMatrix<double>& data) {
+    // For Eigen sparse matrix (you may need to adjust this based on the actual Eigen sparse matrix type you are using)
+    // Write Eigen sparse matrix to file in a custom format
+    for (int i = 0; i < data.rows(); ++i) {
+        for (int j = 0; j < data.cols(); ++j) {
+            file << data.coeff(i, j) << " ";
+        }
+        file << std::endl;
+    }
+
+    return true;
+}
+
+bool save(std::ofstream& file, const Eigen::VectorXd& data) {
+    // For Eigen::VectorXd
+    for (int i = 0; i < data.size(); ++i) {
+        file << data(i) << " ";
+    }
+
+    return true;
+}
+
+
 template <typename T>
 bool Utils::writeDataToFile(const T& data, const std::string& filename, bool append) {
     // Open the file for writing
@@ -413,42 +489,7 @@ bool Utils::writeDataToFile(const T& data, const std::string& filename, bool app
     // Print "new line" to the file
     file << "New Data:" << std::endl;
     // Write the data to the file
-    if constexpr (std::is_same_v<T, arma::mat> || std::is_same_v<T, arma::vec> || std::is_same_v<T, arma::uvec>|| std::is_same_v<T, arma::umat>) {
-        // For Armadillo dense data (vector, matrix, or uvec)
-        data.save(file, arma::raw_ascii);
-    } else if constexpr (std::is_same_v<T, arma::sp_mat>) {
-        // For Armadillo sparse matrix (CSR format)
-        std::cerr << "Error: Writing sparse matrices in ASCII format is not supported." << std::endl;
-        return false;
-    } else if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<int>>) {
-        // For double or int vectors
-        for (const auto& item : data) {
-            file << item << " ";
-        }
-    } else if constexpr (std::is_same_v<T, std::vector<Eigen::Triplet<double>>>) {
-            // For std::vector<Eigen::Triplet<double>> (sparse matrix in triplet format)
-            for (const auto& triplet : data) {
-                file << triplet.row() << " " << triplet.col() << " " << triplet.value() << std::endl;
-            }
-    } else if constexpr (std::is_same_v<T, Eigen::SparseMatrix<double>>) {
-        // For Eigen sparse matrix (you may need to adjust this based on the actual Eigen sparse matrix type you are using)
-        // Write Eigen sparse matrix to file in a custom format
-        for (int i = 0; i < data.rows(); ++i) {
-            for (int j = 0; j < data.cols(); ++j) {
-                file << data.coeff(i, j) << " ";
-            }
-            file << std::endl;
-        }
-    }else if constexpr (std::is_same_v<T, Eigen::VectorXd>) {
-        // For Eigen::VectorXd
-        for (int i = 0; i < data.size(); ++i) {
-            file << data(i) << " ";
-        }
-    }       else {
-        // Handle unsupported types here
-        std::cerr << "Error: Unsupported data type." << std::endl;
-        return false;
-    }
+    const bool saved = save(file, data);
 
     // Close the file
     file.close();
@@ -459,7 +500,7 @@ bool Utils::writeDataToFile(const T& data, const std::string& filename, bool app
         return false;
     }
 
-    return true;
+    return saved;
 }
 
 // Explicit template specialization for arma::mat

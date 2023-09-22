@@ -1,4 +1,4 @@
-#include "InputReader.h"
+#include "InputReader.hpp"
 
 InputReader::InputReader(const std::string& filename) : filename_(filename) {
     readFile();

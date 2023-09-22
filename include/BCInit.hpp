@@ -1,13 +1,13 @@
 #ifndef BCINIT_H
 #define BCINIT_H
 
-#include "InputReader.h"
-#include "Elements.h"
-#include "Utils.h"
+#include "InputReader.hpp"
+#include "Elements.hpp"
+#include "Utils.hpp"
 #include <armadillo>
 #include <omp.h>
 
-#include "Mesh.h"
+#include "Mesh.hpp"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
 
 class BCInit {

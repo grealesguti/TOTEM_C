@@ -1,12 +1,12 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
-#include "InputReader.h"
-#include "Elements.h"
-#include "Utils.h"
+#include "InputReader.hpp"
+#include "Elements.hpp"
+#include "Utils.hpp"
 #include <armadillo>
-#include "BCInit.h"
-#include "Mesh.h"
+#include "BCInit.hpp"
+#include "Mesh.hpp"
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>

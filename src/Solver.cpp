@@ -1,4 +1,4 @@
-#include "Solver.h"
+#include "Solver.hpp"
 using namespace arma;
 
 Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
@@ -76,8 +76,11 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                 for (int nodeTag : nodeTags_el) {
                     element_dofs[cc] = nodeTag * dof_per_node;
                     element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
-                    element_dof_values[cc] = soldofs_[ nodeTag * dof_per_node];
-                    element_dof_values[cc + nodes_per_element]= soldofs_[ nodeTag * dof_per_node + 1];
+                    // FIXME (Parche temporal) Find out why some values are out of range and use methods like insert, at, an so on
+                    if (nodeTag*dof_per_node+1<soldofs_.size()) {
+                        element_dof_values[cc] = soldofs_[ nodeTag * dof_per_node];
+                        element_dof_values[cc + nodes_per_element]= soldofs_[ nodeTag * dof_per_node + 1];
+                    }
                     cc += 1;
                 }
                // std::cout<<"-Desired Output:"<<std::endl;
@@ -107,7 +110,9 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                 // Use atomic addition for updating Full_Ra
                 //#pragma omp atomic
                 for (int i = 0; i < element_dofs.n_elem; i++) {
-                    Full_Ra[element_dofs[i]] += vector_Ra[i];
+                    // FIXME (Parche temporal) Find out why some values are out of range and use methods like insert, at, an so on
+                    if (element_dofs[i]<Full_Ra.size())
+                        Full_Ra[element_dofs[i]] += vector_Ra[i];
                 }
                 //std::cout << "-filled Ra." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){

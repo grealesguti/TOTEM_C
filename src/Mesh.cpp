@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "Mesh.hpp"
 using namespace arma;
 
 Mesh::Mesh(const InputReader& inputReader)

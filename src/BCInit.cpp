@@ -1,4 +1,4 @@
-#include "BCInit.h"
+#include "BCInit.hpp"
 using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
