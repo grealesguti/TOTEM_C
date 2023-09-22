@@ -72,8 +72,19 @@ public:
         return coord;
     }
     std::pair<int, int> getNumNodesForElement(int elementTag);
-    // Function to select shape functions and derivatives based on element type
-    void selectShapeFunctionsAndDerivatives(int etype, double xi, double eta,double zeta, Armadillo<arma::vec>& shapeFunctions, arma::mat& shapeFunctionDerivatives);
+
+    /**
+     * @brief Select shape functions and derivatives based on element type.
+     *
+     * @param[in] etype  Element type.
+     * @param[in] xi     .
+     * @param[in] eta     .
+     * @param[in] zeta     .
+     * @param[out] shapeFunctions     .
+     * @param[out] shapeFunctionDerivatives     .
+     */
+    void selectShapeFunctionsAndDerivatives(const int etype, const double xi, const double eta, const double zeta,
+                                            Armadillo<arma::vec>& shapeFunctions, Armadillo<arma::mat>& shapeFunctionDerivatives);
 
 private:
     Elements elements_;

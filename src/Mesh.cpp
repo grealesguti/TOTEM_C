@@ -773,29 +773,30 @@ std::pair<int, int> Mesh::getNumNodesForElement(int elementTag) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Mesh::selectShapeFunctionsAndDerivatives(int etype, double xi, double eta, double zeta, Armadillo<arma::vec>& shapeFunctions, arma::mat& shapeFunctionDerivatives) {
+void Mesh::selectShapeFunctionsAndDerivatives(const int etype, const double xi, const double eta, const double zeta,
+                                              Armadillo<arma::vec>& shapeFunctions, Armadillo<arma::mat>& shapeFunctionDerivatives) {
     // Clear the output vectors
 
     switch (etype) {
         case 3: // 4-node quadrangle
             //std::cout<<"shape functions: "<< etype<< std::endl;
             shapeFunctions.setData(elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta));
-            elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
+            shapeFunctionDerivatives.setData(elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta));
             break;
         case 16: // 8-node second order quadrangle
             //std::cout<<"shape functions: "<< etype<< std::endl;
             shapeFunctions.setData(elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta));
-            elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta,shapeFunctionDerivatives);
+            shapeFunctionDerivatives.setData(elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta));
             break;
         case 5: // Hexahedral 8 node element
             //std::cout<<"shape functions: "<< etype<< std::endl;
             shapeFunctions.setData(elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta));
-            elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+            shapeFunctionDerivatives.setData(elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta));
             break;
         case 17: // Hexahedral 20 node element
             shapeFunctions.setData(elements_.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta));
             //std::cout<<"shape functions: "<< etype<< std::endl;
-            elements_.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
+            shapeFunctionDerivatives.setData(elements_.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta));
             //std::cout<<"shape function derivatives: "<< etype<< std::endl;
             break;
         default:

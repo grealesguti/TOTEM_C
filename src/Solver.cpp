@@ -200,7 +200,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     // Define variables
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     Armadillo<arma::vec> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
-    arma::mat shapeFunctionDerivatives(nodes_per_element, 3); // Shape function derivatives
+    Armadillo<arma::mat> shapeFunctionDerivatives({nodes_per_element, 3}); // Shape function derivatives
     // Define the integration result matrices
     arma::mat RT(nodes_per_element, 1, arma::fill::zeros);
     arma::mat RV(nodes_per_element, 1, arma::fill::zeros);
@@ -226,12 +226,12 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
 
-    arma::mat JM = shapeFunctionDerivatives.t() * coords.t(); // Fixed the loop indexing
+    arma::mat JM = shapeFunctionDerivatives.getData().t() * coords.t(); // Fixed the loop indexing
                 //std::cout << "JM." << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
         utils_.writeDataToFile(JM,"Outputs/KTJM.txt",true);
         shapeFunctions.writeToFile("Outputs/KTshapeFunctions.txt",true);
-        utils_.writeDataToFile(shapeFunctionDerivatives,"Outputs/KTshapeFunctionDerivatives.txt",true);
+        shapeFunctionDerivatives.writeToFile("Outputs/KTshapeFunctionDerivatives.txt",true);
         utils_.writeDataToFile(natcoords,"Outputs/KTnatcoords.txt",true);
         utils_.writeDataToFile(coords,"Outputs/KTcoords.txt",true);
         utils_.writeDataToFile(dofs,"Outputs/KTdofs.txt",true);
@@ -270,42 +270,44 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "Th: " << Th << std::endl;
 
     // Calculate je and qe
-    arma::mat je = -De * shapeFunctionDerivatives.t() * Vee - Da * De * shapeFunctionDerivatives.t() * Tee;
+    const auto shapeFunctionDerivativesData = shapeFunctionDerivatives.getData();
+    const auto shapeFunctionDerivativesData_t = shapeFunctionDerivativesData.t();
+    arma::mat je = -De * shapeFunctionDerivativesData_t * Vee - Da * De * shapeFunctionDerivativesData_t * Tee;
     //std::cout << " je." << std::endl;
-    arma::mat qe = Da * Th * je - Dk * shapeFunctionDerivatives.t() * Tee;
+    arma::mat qe = Da * Th * je - Dk * shapeFunctionDerivativesData_t * Tee;
     //std::cout << "qe ." << std::endl;
 
     // Perform the necessary calculations here to compute djdt, djdv, dqdt, dqdv
-    arma::mat djdt = -Da * De * shapeFunctionDerivatives.t()
-                    - Dda * De * shapeFunctionDerivatives.t() * Tee * shapeFunctions.getData().t()
-                    - Dde * (shapeFunctionDerivatives.t() * Vee + Da * shapeFunctionDerivatives.t() * Tee) * shapeFunctions.getData().t();
+    arma::mat djdt = -Da * De * shapeFunctionDerivativesData_t
+                    - Dda * De * shapeFunctionDerivativesData_t * Tee * shapeFunctions.getData().t()
+                    - Dde * (shapeFunctionDerivativesData_t * Vee + Da * shapeFunctionDerivativesData_t * Tee) * shapeFunctions.getData().t();
     //std::cout << "djdt" << std::endl;
 
-    arma::mat djdv = -De * shapeFunctionDerivatives.t();
+    arma::mat djdv = -De * shapeFunctionDerivativesData_t;
    // std::cout << "djdv" << std::endl;
 
     arma::mat dqdt = Da * Th * djdt + Da * je * shapeFunctions.getData().t()
-                    - Dk * shapeFunctionDerivatives.t()
+                    - Dk * shapeFunctionDerivativesData_t
                     + Dda * Th * je * shapeFunctions.getData().t()
-                    - Ddk * shapeFunctionDerivatives.t() * Tee * shapeFunctions.getData().t();
+                    - Ddk * shapeFunctionDerivativesData_t * Tee * shapeFunctions.getData().t();
     //std::cout << "dqdt" << std::endl;
 
-    arma::mat dqdv = -Da * De * Th * shapeFunctionDerivatives.t();
+    arma::mat dqdv = -Da * De * Th * shapeFunctionDerivativesData_t;
     //std::cout << "dqdv" << std::endl;
     std::cout << "thermoel_matrix addition" << std::endl;
 
     // Perform the integration for RT, RV, K11, K12, K21, K22
-    RT += (-shapeFunctionDerivatives * qe + shapeFunctions.getData() * je.t() * shapeFunctionDerivatives.t() * Vee);
+    RT += (-shapeFunctionDerivativesData * qe + shapeFunctions.getData() * je.t() * shapeFunctionDerivativesData_t * Vee);
     //std::cout << "RT" << std::endl;
-    RV += (-shapeFunctionDerivatives * je);
+    RV += (-shapeFunctionDerivativesData * je);
     //std::cout << "RV" << std::endl;
-    K11 +=(shapeFunctionDerivatives * dqdt - shapeFunctions.getData() * (djdt.t() * shapeFunctionDerivatives.t() * Vee).t());
+    K11 +=(shapeFunctionDerivativesData * dqdt - shapeFunctions.getData() * (djdt.t() * shapeFunctionDerivativesData_t * Vee).t());
     //std::cout << "K11" << std::endl;
-    K12 +=(shapeFunctionDerivatives * dqdv - shapeFunctions.getData() * (djdv.t() * shapeFunctionDerivatives.t() * Vee).t() - shapeFunctions.getData() * (je.t() * shapeFunctionDerivatives.t()));
+    K12 +=(shapeFunctionDerivativesData * dqdv - shapeFunctions.getData() * (djdv.t() * shapeFunctionDerivativesData_t * Vee).t() - shapeFunctions.getData() * (je.t() * shapeFunctionDerivativesData_t));
     //std::cout << "K12" << std::endl;
-    K21 +=(shapeFunctionDerivatives * djdt);
+    K21 +=(shapeFunctionDerivativesData * djdt);
     //std::cout << "K21" << std::endl;
-    K22 +=(shapeFunctionDerivatives * djdv);
+    K22 +=(shapeFunctionDerivativesData * djdv);
     //std::cout << "matrixes" << std::endl;
 
     if (inputReader_.getDesiredOutput()=="all"){

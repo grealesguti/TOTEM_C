@@ -143,7 +143,7 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
     int nodes_per_element = nodesperelement_etype.first; // Number of nodes
     int etype = nodesperelement_etype.second; // Element type
     Armadillo<arma::vec> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
-    mat shapeFunctionDerivatives(nodes_per_element, 2); // Shape function derivatives
+    Armadillo<arma::mat> shapeFunctionDerivatives({nodes_per_element, 2}); // Shape function derivatives
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     mat F_q(nodes_per_element, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
     //std::cout << "Extract natural coordinates. " << std::endl;
@@ -163,7 +163,7 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
 
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
-    mat JM = shapeFunctionDerivatives.t() * coords.t();
+    mat JM = shapeFunctionDerivatives.getData().t() * coords.t();
     //"Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
     double detJ = arma::det(JM);
@@ -173,7 +173,7 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
     //std::cout << "integrand calculated " << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
         shapeFunctions.writeToFile("Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
-        utils_.writeDataToFile(shapeFunctionDerivatives,"Outputs/HeatIntegrationShapeFunctionsDerivatives_"+std::to_string(element)+".txt",true);
+        shapeFunctionDerivatives.writeToFile("Outputs/HeatIntegrationShapeFunctionsDerivatives_"+std::to_string(element)+".txt",true);
         utils_.writeDataToFile(JM,"Outputs/HeatIntegrationJM_"+std::to_string(element)+".txt",true);
         utils_.writeDataToFile(coords,"Outputs/HeatIntegrationElcoords_"+std::to_string(element)+".txt",true);
         utils_.writeDataToFile(natcoords,"Outputs/HeatIntegrationNatcoords_"+std::to_string(element)+".txt",true);
