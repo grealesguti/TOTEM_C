@@ -29,8 +29,6 @@ int main(int argc, char* argv[]) {
 
     std::string inputFileName = "input.txt"; // Default input file name
 
-    std::cout << "1" << std::endl;
-
     // Parse command-line arguments
     if (argc >= 3 && std::string(argv[1]) == "-i") {  // -i <Input file name.txt>
         inputFileName = argv[2];
@@ -38,8 +36,6 @@ int main(int argc, char* argv[]) {
         std::cout << "Usage: " << argv[0] << " -i <input_file.txt>" << std::endl;
         return 1;
     }
-
-    std::cout << "2" << std::endl;
 
     // Read the input file 
     InputReader reader(inputFileName); 
@@ -56,8 +52,6 @@ int main(int argc, char* argv[]) {
     //std::cout<<reader.getDesiredOutput()<<std::endl;
     utils.writeDataToFile(BC.getAllInitialDof(),"Outputs/Out_DegreesOfFreedom.txt",false);
     std::vector<int> freedofidxs_ = mesh.GetFreedofsIdx();
-    
-    std::cout << "3" << std::endl;
 
     // Initialization of Solver variablesç
     int numFreeDofs = freedofidxs_.size(); // Assuming freedofidx_ is a private member variable
@@ -71,8 +65,6 @@ int main(int argc, char* argv[]) {
     Solver solver(reader, mesh, BC);
     solver.Assembly(reducedK,reducedR);
     std::cout<<"Assembly finished:"<<std::endl;
-
-    std::cout << "4" << std::endl;
 
     //solver.solveSparseSystem(system);
     //utils.writeDataToFile(solution,"Outputs/main_solution.txt",false);
@@ -97,6 +89,5 @@ int main(int argc, char* argv[]) {
     }
 
     mesh.finalizeGmsh();
-    std::cout << "5" << std::endl;
     return 0;
 }
