@@ -36,11 +36,7 @@ class Data
         // ------------------------------------------------------------
         // Constructors and destructor
 
-        /**
-         * @brief Constructor.
-         * 
-         * @param[in] data
-         */
+        Data() = default;
         Data(const T& data);
 
         // ------------------------------------------------------------
@@ -79,6 +75,7 @@ class ArmadilloSpMat : public Data<arma::sp_mat>
         // ------------------------------------------------------------
         // Constructors and destructor
 
+        ArmadilloSpMat() = default;
         ArmadilloSpMat(const arma::sp_mat& data);
 
     private:
@@ -95,6 +92,7 @@ class Armadillo : public Data<T>
         // ------------------------------------------------------------
         // Constructors and destructor
 
+        Armadillo() = default;
         Armadillo(const T& data);
 
     private:
@@ -111,7 +109,15 @@ class Vector : public Data<std::vector<T>>
         // ------------------------------------------------------------
         // Constructors and destructor
 
+        Vector() = default;
         Vector(const std::vector<T>& data);
+
+        // ------------------------------------------------------------
+        // Methods
+
+        const std::size_t size() const;
+
+        void assign(std::vector<std::size_t>::iterator first, std::vector<std::size_t>::iterator last);
 
     private:
         // ------------------------------------------------------------
@@ -126,6 +132,7 @@ class EigenDoubleTripletVector : public Data<std::vector<Eigen::Triplet<double>>
         // ------------------------------------------------------------
         // Constructors and destructor
 
+        EigenDoubleTripletVector() = default;
         EigenDoubleTripletVector(const std::vector<Eigen::Triplet<double>>& data);
 
     private:
@@ -142,6 +149,7 @@ class EigenSparseMatrix : public Data<Eigen::SparseMatrix<double>>
         // ------------------------------------------------------------
         // Constructors and destructor
 
+        EigenSparseMatrix() = default;
         EigenSparseMatrix(const Eigen::SparseMatrix<double>& data);
 
     private:
@@ -157,6 +165,7 @@ class EigenVectorXd : public Data<Eigen::VectorXd>
         // ------------------------------------------------------------
         // Constructors and destructor
 
+        EigenVectorXd() = default;
         EigenVectorXd(const Eigen::VectorXd& data);
 
     private:

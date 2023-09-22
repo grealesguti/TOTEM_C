@@ -64,6 +64,9 @@ template class Data<arma::vec>;
 template class Data<arma::uvec>;
 template class Data<arma::umat>;
 
+template class Data<std::vector<double>>;
+template class Data<std::vector<int>>;
+
 //////////////////////////////////////////////////////////////////////////////////
 // ------------------------------------------------------------
 // ============================================================
@@ -114,6 +117,16 @@ bool Vector<T>::save(std::ofstream& file) const {
     }
 
     return true;
+}
+
+template <class T>
+const std::size_t Vector<T>::size() const {
+    return this->data_.size();
+}
+
+template <class T>
+void Vector<T>::assign(std::vector<std::size_t>::iterator first, std::vector<std::size_t>::iterator last){
+    this->data_.assign(first, last);
 }
 
 template class Vector<double>;
