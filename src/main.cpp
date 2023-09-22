@@ -96,6 +96,7 @@ int main(int argc, char* argv[]) {
         psp.WriteUnstructuredMeshToVTK();
     }
 
+    mesh.finalizeGmsh();
     std::cout << "5" << std::endl;
     return 0;
 }
