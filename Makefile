@@ -1,5 +1,5 @@
 SRC_DIR     = src
-HEADER_DIR  = include
+HEADER_DIR  = include $(wildcard include/*/)
 BUILD_DIR   = build
 BIN_DIR     = bin
 
@@ -11,7 +11,7 @@ INCLUDES := -I/usr/include/eigen3 -I$(HEADER_DIR)
 LDFLAGS := -L/usr/lib
 LDLIBS  := -lgmsh -larmadillo -llapack -lopenblas -lgomp
 
-SRC     := $(wildcard $(SRC_DIR)/*.cpp)
+SRC     := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)
 HEADER  := $(wildcard $(HEADER_DIR)/*.hpp)
 OBJ     := $(SRC:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 
@@ -30,8 +30,11 @@ $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c -o $@ $< $(INCLUDES)
 
 # Create folder
-$(BIN_DIR) $(BUILD_DIR):
+$(BIN_DIR):
 	mkdir -p $@
 
+$(BUILD_DIR):
+	mkdir -p $@ $@/utils
+
 clean:
-	rm -f $(OBJ) $(BIN_DIR)/$(TARGET)
+	rm -rf $(OBJ) $(BIN_DIR)/$(TARGET)
