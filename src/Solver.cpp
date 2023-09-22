@@ -107,7 +107,9 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                 // Use atomic addition for updating Full_Ra
                 //#pragma omp atomic
                 for (int i = 0; i < element_dofs.n_elem; i++) {
-                    Full_Ra[element_dofs[i]] += vector_Ra[i];
+                    // FIXME (Parche temporal) Find out why some values are out of range and use methods like insert, at, an so on
+                    if (element_dofs[i]<Full_Ra.size())
+                        Full_Ra[element_dofs[i]] += vector_Ra[i];
                 }
                 //std::cout << "-filled Ra." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
