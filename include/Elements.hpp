@@ -13,7 +13,7 @@ public:
     ~Elements();
 
     // Evaluate shape functions for a linear triangular element with 4 nodes
-    void EvaluateLinearTriangularShapeFunctions(double xi, double eta, arma::vec& shapeFunctions);
+    arma::vec EvaluateLinearTriangularShapeFunctions(const double xi,const  double eta);
     void CalculateLinearTriangularShapeFunctionDerivatives(double xi, double eta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a linear quadrilateral element with 4 nodes
@@ -21,19 +21,19 @@ public:
     void EvaluateLinearQuadrilateralShapeFunctionDerivatives(double xi, double eta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a quadratic quadrilateral element with 8 nodes
-    void EvaluateQuadraticQuadrilateralShapeFunctions(double xi, double eta, arma::vec& shapeFunctions);
+    arma::vec EvaluateQuadraticQuadrilateralShapeFunctions(const double xi, const double eta);
     void CalculateQuadraticQuadrilateralShapeFunctionDerivatives(double xi, double eta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a linear triangular element with 4 nodes
-    void EvaluateLinearTetrahedraShapeFunctions(double xi, double eta, double zeta, arma::vec& shapeFunctions);
+    arma::vec EvaluateLinearTetrahedraShapeFunctions(const double xi, const double eta, const double zeta);
     void CalculateLinearTetrahedraShapeFunctionDerivatives(double xi, double eta, double zeta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a linear hexahedral element with 8 nodes
-    void EvaluateHexahedralLinearShapeFunctions(double xi, double eta, double zeta, arma::vec& shapeFunctions);
+    arma::vec EvaluateHexahedralLinearShapeFunctions(const double xi, const double eta, const double zeta);
     void CalculateHexahedralLinearShapeFunctionDerivatives(double xi, double eta, double zeta, arma::mat& shapeFunctionDerivatives);
 
     // Evaluate shape functions for a hexahedral serendipity element with 20 nodes
-    void CalculateHexahedralSerendipityShapeFunctions(double xi, double eta, double zeta, arma::vec& shapeFunctions);
+    arma::vec CalculateHexahedralSerendipityShapeFunctions(const double xi, const double eta, const double zetas);
     void CalculateHexahedralSerendipityShapeFunctionDerivatives(double xi, double eta, double zeta, arma::mat& shapeFunctionDerivatives);
 
 private:

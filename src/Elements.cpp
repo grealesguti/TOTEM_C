@@ -11,19 +11,9 @@ Elements::~Elements() {}
 // TRI 3 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to evaluate shape functions for a linear triangular element with 3 nodes
-void Elements::EvaluateLinearTriangularShapeFunctions(double xi, double eta, arma::vec& shapeFunctions) {
-    // Ensure the shapeFunctions vector is of the correct size (3 nodes)
-    shapeFunctions.set_size(3);
-
-    // Calculate the shape functions for a linear triangular element
-    double xi1 = xi;
-    double xi2 = eta;
-    double xi3 = 1.0 - xi1 - xi2;
-
+arma::vec Elements::EvaluateLinearTriangularShapeFunctions(const double xi, const double eta) {
     // Shape functions for a linear triangular element
-    shapeFunctions(0) = xi1;
-    shapeFunctions(1) = xi2;
-    shapeFunctions(2) = xi3;
+    return { xi, eta, 1.0 - xi - eta};
 }
 
 // Function to calculate shape function derivatives for a linear triangular element with 3 nodes
@@ -87,24 +77,22 @@ void Elements::EvaluateLinearQuadrilateralShapeFunctionDerivatives(double xi, do
 // QUAD 8 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate shape functions for a quadratic quadrilateral element with 8 nodes
-void Elements::EvaluateQuadraticQuadrilateralShapeFunctions(double xi, double eta, arma::vec& shapeFunctions) {
-    // Ensure the shapeFunctions vector is of the correct size (8 nodes)
-    shapeFunctions.set_size(8);
-
+arma::vec Elements::EvaluateQuadraticQuadrilateralShapeFunctions(const double xi, const double eta) {
     // Define the shape functions for a quadratic quadrilateral element
-    double xi1 = -1.0;
-    double xi2 = 1.0;
-    double eta1 = -1.0;
-    double eta2 = 1.0;
-
-    shapeFunctions(0) = 0.25 * (xi - xi1) * (eta - eta1);
-    shapeFunctions(1) = 0.25 * (xi - xi2) * (eta - eta1);
-    shapeFunctions(2) = 0.25 * (xi - xi2) * (eta - eta2);
-    shapeFunctions(3) = 0.25 * (xi - xi1) * (eta - eta2);
-    shapeFunctions(4) = 0.5 * (1 - xi * xi) * 0.25 * (eta - eta1);
-    shapeFunctions(5) = 0.5 * (1 - xi * xi) * 0.25 * (eta - eta2);
-    shapeFunctions(6) = 0.5 * (1 - eta * eta) * 0.25 * (xi - xi2);
-    shapeFunctions(7) = 0.5 * (1 - eta * eta) * 0.25 * (xi - xi1);
+    const double xi1 = -1.0;
+    const double xi2 = 1.0;
+    const double eta1 = -1.0;
+    const double eta2 = 1.0;
+    return {
+        0.25 * (xi - xi1) * (eta - eta1),
+        0.25 * (xi - xi2) * (eta - eta1),
+        0.25 * (xi - xi2) * (eta - eta2),
+        0.25 * (xi - xi1) * (eta - eta2),
+        0.5 * (1 - xi * xi) * 0.25 * (eta - eta1),
+        0.5 * (1 - xi * xi) * 0.25 * (eta - eta2),
+        0.5 * (1 - eta * eta) * 0.25 * (xi - xi2),
+        0.5 * (1 - eta * eta) * 0.25 * (xi - xi1)
+    };
 }
 
 // Function to calculate derivatives of shape functions for a quadratic quadrilateral element with 8 nodes
@@ -140,21 +128,9 @@ void Elements::CalculateQuadraticQuadrilateralShapeFunctionDerivatives(double xi
 // TETRA 4 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to evaluate shape functions for a linear tetrahedral element with 4 nodes
-void Elements::EvaluateLinearTetrahedraShapeFunctions(double xi, double eta, double zeta, arma::vec& shapeFunctions) {
-    // Ensure the shapeFunctions vector is of the correct size (4 nodes)
-    shapeFunctions.set_size(4);
-
-    // Calculate the shape functions for a linear tetrahedral element
-    double xi1 = xi;
-    double xi2 = eta;
-    double xi3 = zeta;
-    double xi4 = 1.0 - xi1 - xi2 - xi3;
-
+arma::vec Elements::EvaluateLinearTetrahedraShapeFunctions(const double xi, const double eta, const double zeta) {
     // Shape functions for a linear tetrahedral element
-    shapeFunctions(0) = xi1;
-    shapeFunctions(1) = xi2;
-    shapeFunctions(2) = xi3;
-    shapeFunctions(3) = xi4;
+    return {xi, eta, zeta, 1.0 - xi - eta - zeta};
 }
 // Function to calculate shape function derivatives for a linear tetrahedral element with 4 nodes
 void Elements::CalculateLinearTetrahedraShapeFunctionDerivatives(double xi, double eta, double zeta, arma::mat& shapeFunctionDerivatives) {
@@ -189,19 +165,18 @@ void Elements::CalculateLinearTetrahedraShapeFunctionDerivatives(double xi, doub
 // HEXA 8 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate shape functions for a linear hexahedral element with 8 nodes
-void Elements::EvaluateHexahedralLinearShapeFunctions(double xi, double eta, double zeta, arma::vec& shapeFunctions) {
-    // Ensure the shapeFunctions vector is of the correct size (8 nodes)
-    shapeFunctions.set_size(8);
-
+arma::vec Elements::EvaluateHexahedralLinearShapeFunctions(const double xi, const double eta, const double zeta) {
     // Define the shape functions for a linear hexahedral element
-    shapeFunctions(0) = 0.125 * (1 - xi) * (1 - eta) * (1 - zeta);
-    shapeFunctions(1) = 0.125 * (1 + xi) * (1 - eta) * (1 - zeta);
-    shapeFunctions(2) = 0.125 * (1 + xi) * (1 + eta) * (1 - zeta);
-    shapeFunctions(3) = 0.125 * (1 - xi) * (1 + eta) * (1 - zeta);
-    shapeFunctions(4) = 0.125 * (1 - xi) * (1 - eta) * (1 + zeta);
-    shapeFunctions(5) = 0.125 * (1 + xi) * (1 - eta) * (1 + zeta);
-    shapeFunctions(6) = 0.125 * (1 + xi) * (1 + eta) * (1 + zeta);
-    shapeFunctions(7) = 0.125 * (1 - xi) * (1 + eta) * (1 + zeta);
+    return {
+        0.125 * (1 - xi) * (1 - eta) * (1 - zeta),
+        0.125 * (1 + xi) * (1 - eta) * (1 - zeta),
+        0.125 * (1 + xi) * (1 + eta) * (1 - zeta),
+        0.125 * (1 - xi) * (1 + eta) * (1 - zeta),
+        0.125 * (1 - xi) * (1 - eta) * (1 + zeta),
+        0.125 * (1 + xi) * (1 - eta) * (1 + zeta),
+        0.125 * (1 + xi) * (1 + eta) * (1 + zeta),
+        0.125 * (1 - xi) * (1 + eta) * (1 + zeta)
+    };
 }
 
 // Function to calculate derivatives of shape functions for a linear hexahedral element with 8 nodes
@@ -247,39 +222,34 @@ void Elements::CalculateHexahedralLinearShapeFunctionDerivatives(double xi, doub
 // HEXA 20 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to calculate shape functions for a hexahedral serendipity element with 20 nodes
-void Elements::CalculateHexahedralSerendipityShapeFunctions(double xi, double eta, double zeta, arma::vec& shapeFunctions) {
-   // Ensure the shapeFunctions vector is of the correct size (20 nodes)
-    shapeFunctions.set_size(20);
-
+arma::vec Elements::CalculateHexahedralSerendipityShapeFunctions(const double xi1, const double xi2, const double xi3) {
     // Define the shape functions for a hexahedral serendipity element
-    double xi1 = xi;
-    double xi2 = eta;
-    double xi3 = zeta;
+    return {
+        (1. - xi2) * (1. - xi3) * (1. - xi1) * (-xi2 - xi3 - xi1 - 2) / 8,
+        (1. + xi2) * (1. - xi3) * (1. - xi1) * (xi2 - xi3 - xi1 - 2) / 8,
+        (1. + xi2) * (1. + xi3) * (1. - xi1) * (xi2 + xi3 - xi1 - 2) / 8,
+        (1. - xi2) * (1. + xi3) * (1. - xi1) * (-xi2 + xi3 - xi1 - 2) / 8,
 
-    shapeFunctions(0) = (1. - xi2) * (1. - xi3) * (1. - xi1) * (-xi2 - xi3 - xi1 - 2) / 8;
-    shapeFunctions(1) = (1. + xi2) * (1. - xi3) * (1. - xi1) * (xi2 - xi3 - xi1 - 2) / 8;
-    shapeFunctions(2) = (1. + xi2) * (1. + xi3) * (1. - xi1) * (xi2 + xi3 - xi1 - 2) / 8;
-    shapeFunctions(3) = (1. - xi2) * (1. + xi3) * (1. - xi1) * (-xi2 + xi3 - xi1 - 2) / 8;
+        (1. - xi2) * (1. - xi3) * (1. + xi1) * (-xi2 - xi3 + xi1 - 2) / 8,
+        (1. + xi2) * (1. - xi3) * (1. + xi1) * (xi2 - xi3 + xi1 - 2) / 8,
+        (1. + xi2) * (1. + xi3) * (1. + xi1) * (xi2 + xi3 + xi1 - 2) / 8,
+        (1. - xi2) * (1. + xi3) * (1. + xi1) * (-xi2 + xi3 + xi1 - 2) / 8,
 
-    shapeFunctions(4) = (1. - xi2) * (1. - xi3) * (1. + xi1) * (-xi2 - xi3 + xi1 - 2) / 8;
-    shapeFunctions(5) = (1. + xi2) * (1. - xi3) * (1. + xi1) * (xi2 - xi3 + xi1 - 2) / 8;
-    shapeFunctions(6) = (1. + xi2) * (1. + xi3) * (1. + xi1) * (xi2 + xi3 + xi1 - 2) / 8;
-    shapeFunctions(7) = (1. - xi2) * (1. + xi3) * (1. + xi1) * (-xi2 + xi3 + xi1 - 2) / 8;
+        (1 - xi2 * xi2) * (1 - xi3) * (1 - xi1) / 4,
+        (1 + xi2) * (1 - xi3 * xi3) * (1 - xi1) / 4,
+        (1 - xi2 * xi2) * (1 + xi3) * (1 - xi1) / 4,
+        (1 - xi2) * (1 - xi3 * xi3) * (1 - xi1) / 4,
 
-    shapeFunctions(8) = (1 - xi2 * xi2) * (1 - xi3) * (1 - xi1) / 4;
-    shapeFunctions(9) = (1 + xi2) * (1 - xi3 * xi3) * (1 - xi1) / 4;
-    shapeFunctions(10) = (1 - xi2 * xi2) * (1 + xi3) * (1 - xi1) / 4;
-    shapeFunctions(11) = (1 - xi2) * (1 - xi3 * xi3) * (1 - xi1) / 4;
+        (1 - xi2 * xi2) * (1 - xi3) * (1 + xi1) / 4,
+        (1 + xi2) * (1 - xi3 * xi3) * (1 + xi1) / 4,
+        (1 - xi2 * xi2) * (1 + xi3) * (1 + xi1) / 4,
+        (1 - xi2) * (1 - xi3 * xi3) * (1 + xi1) / 4,
 
-    shapeFunctions(12) = (1 - xi2 * xi2) * (1 - xi3) * (1 + xi1) / 4;
-    shapeFunctions(13) = (1 + xi2) * (1 - xi3 * xi3) * (1 + xi1) / 4;
-    shapeFunctions(14) = (1 - xi2 * xi2) * (1 + xi3) * (1 + xi1) / 4;
-    shapeFunctions(15) = (1 - xi2) * (1 - xi3 * xi3) * (1 + xi1) / 4;
-
-    shapeFunctions(16) = (1 - xi2) * (1 - xi3) * (1 - xi1 * xi1) / 4;
-    shapeFunctions(17) = (1 + xi2) * (1 - xi3) * (1 - xi1 * xi1) / 4;
-    shapeFunctions(18) = (1 + xi2) * (1 + xi3) * (1 - xi1 * xi1) / 4;
-    shapeFunctions(19) = (1 - xi2) * (1 + xi3) * (1 - xi1 * xi1) / 4;
+        (1 - xi2) * (1 - xi3) * (1 - xi1 * xi1) / 4,
+        (1 + xi2) * (1 - xi3) * (1 - xi1 * xi1) / 4,
+        (1 + xi2) * (1 + xi3) * (1 - xi1 * xi1) / 4,
+        (1 - xi2) * (1 + xi3) * (1 - xi1 * xi1) / 4
+    };
 }
 
 // Function to calculate derivatives of shape functions for a hexahedral serendipity element with 20 nodes

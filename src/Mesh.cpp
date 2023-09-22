@@ -773,30 +773,36 @@ std::pair<int, int> Mesh::getNumNodesForElement(int elementTag) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Mesh::selectShapeFunctionsAndDerivatives(int etype, double xi, double eta, double zeta, arma::vec& shapeFunctions, arma::mat& shapeFunctionDerivatives) {
+void Mesh::selectShapeFunctionsAndDerivatives(int etype, double xi, double eta, double zeta, Armadillo<arma::vec>& shapeFunctions, arma::mat& shapeFunctionDerivatives) {
     // Clear the output vectors
 
-    if (etype == 3) { // 4-node quadrangle
+    switch (etype) {
+        case 3: // 4-node quadrangle
             //std::cout<<"shape functions: "<< etype<< std::endl;
-            shapeFunctions = elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta);
+            shapeFunctions.setData(elements_.EvaluateLinearQuadrilateralShapeFunctions(xi, eta));
             elements_.EvaluateLinearQuadrilateralShapeFunctionDerivatives(xi, eta, shapeFunctionDerivatives);
-    } else if (etype == 16) { // 8-node second order quadrangle
+            break;
+        case 16: // 8-node second order quadrangle
             //std::cout<<"shape functions: "<< etype<< std::endl;
-            elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta, shapeFunctions);
+            shapeFunctions.setData(elements_.EvaluateQuadraticQuadrilateralShapeFunctions(xi, eta));
             elements_.CalculateQuadraticQuadrilateralShapeFunctionDerivatives(xi, eta,shapeFunctionDerivatives);
-    }else if(etype==5){// Hexahedral 8 node element
+            break;
+        case 5: // Hexahedral 8 node element
             //std::cout<<"shape functions: "<< etype<< std::endl;
-            elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta, shapeFunctions);
+            shapeFunctions.setData(elements_.EvaluateHexahedralLinearShapeFunctions(xi, eta, zeta));
             elements_.CalculateHexahedralLinearShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
-    }else if(etype==17){// Hexahedral 20 node element
-            elements_.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta, shapeFunctions);
+            break;
+        case 17: // Hexahedral 20 node element
+            shapeFunctions.setData(elements_.CalculateHexahedralSerendipityShapeFunctions(xi, eta, zeta));
             //std::cout<<"shape functions: "<< etype<< std::endl;
             elements_.CalculateHexahedralSerendipityShapeFunctionDerivatives(xi, eta, zeta, shapeFunctionDerivatives);
             //std::cout<<"shape function derivatives: "<< etype<< std::endl;
-    } else {
-        // Handle unsupported element types or return an error code
-        // You can choose an appropriate error handling strategy here
-        // For example, you can throw an exception or set an error flag
-        // and handle it in the calling code.
+            break;
+        default:
+            // Handle unsupported element types or return an error code
+            // You can choose an appropriate error handling strategy here
+            // For example, you can throw an exception or set an error flag
+            // and handle it in the calling code.
+            break;
     }
 }

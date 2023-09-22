@@ -11,6 +11,7 @@
 #include <armadillo>
 #include "Elements.hpp"
 
+#include "utils/data.hpp"
 
 
 class Mesh {
@@ -72,7 +73,7 @@ public:
     }
     std::pair<int, int> getNumNodesForElement(int elementTag);
     // Function to select shape functions and derivatives based on element type
-    void selectShapeFunctionsAndDerivatives(int etype, double xi, double eta,double zeta, arma::vec& shapeFunctions, arma::mat& shapeFunctionDerivatives);
+    void selectShapeFunctionsAndDerivatives(int etype, double xi, double eta,double zeta, Armadillo<arma::vec>& shapeFunctions, arma::mat& shapeFunctionDerivatives);
 
 private:
     Elements elements_;

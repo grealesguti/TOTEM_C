@@ -1,4 +1,7 @@
 #include "BCInit.hpp"
+
+#include "utils/data.hpp"
+
 using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
@@ -138,8 +141,8 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
     // Define variables
     std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(element);
     int nodes_per_element = nodesperelement_etype.first; // Number of nodes
-    int etype = nodesperelement_etype.second; // Element type    
-    arma::vec shapeFunctions(nodes_per_element,1);          // Shape functions as a 4x1 vector
+    int etype = nodesperelement_etype.second; // Element type
+    Armadillo<arma::vec> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
     mat shapeFunctionDerivatives(nodes_per_element, 2); // Shape function derivatives
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     mat F_q(nodes_per_element, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
@@ -166,10 +169,10 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
     double detJ = arma::det(JM);
     //std::cout << "Calculate integrand. " << std::endl;
     // Calculate F_q (heat flow) using your equations
-    F_q = detJ * (shapeFunctions * value);
+    F_q = detJ * (shapeFunctions.getData() * value);
     //std::cout << "integrand calculated " << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
-        utils_.writeDataToFile(shapeFunctions,"Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
+        shapeFunctions.writeToFile("Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
         utils_.writeDataToFile(shapeFunctionDerivatives,"Outputs/HeatIntegrationShapeFunctionsDerivatives_"+std::to_string(element)+".txt",true);
         utils_.writeDataToFile(JM,"Outputs/HeatIntegrationJM_"+std::to_string(element)+".txt",true);
         utils_.writeDataToFile(coords,"Outputs/HeatIntegrationElcoords_"+std::to_string(element)+".txt",true);
