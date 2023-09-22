@@ -13,7 +13,7 @@ Data<T>::Data(const T& data)
 {}
 
 template <class T>
-bool Data<T>::writeToFile(const std::string& filename, const bool append) const {
+bool Data<T>::writeDataToFile(const std::string& filename, const bool append) const {
     // Open the file for writing
     std::ofstream file;
 

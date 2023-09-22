@@ -57,7 +57,7 @@ class Data
          * 
          * @return True if the data was written to the file, false if not.
          */
-        bool writeToFile(const std::string& filename, const bool append = false) const;
+        bool writeDataToFile(const std::string& filename, const bool append = false) const;
 
     protected:
         // ------------------------------------------------------------
