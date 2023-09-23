@@ -3,7 +3,6 @@
 
 // Local
 #include "InputReader.hpp"
-#include "Elements.hpp"
 #include "Utils.hpp"
 #include "BCInit.hpp"
 #include "Mesh.hpp"
@@ -56,7 +55,6 @@ public:
 private:
     const InputReader& inputReader_;
     Mesh& mesh_;
-    Elements elements_; // Add a member variable of type Elements
     BCInit bcinit_; // Add a member variable of type Elements
     Utils utils_;
 

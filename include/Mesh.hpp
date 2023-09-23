@@ -3,7 +3,6 @@
 
 // Local
 #include "InputReader.hpp"
-#include "Elements.hpp"
 #include "utils/data.hpp"
 
 // STL
@@ -89,7 +88,6 @@ public:
                                             Armadillo<arma::vec>& shapeFunctions, Armadillo<arma::mat>& shapeFunctionDerivatives);
 
 private:
-    Elements elements_;
     const InputReader& inputReader_;
     std::vector<std::size_t> elementTags,nodeTags,elementNodeTags,nodeTagselem;
     int numPointsInHex = 8; // Get the number of points in the hexahedron i from the MSH file

@@ -4,7 +4,7 @@
 using namespace arma;
 
 BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
-    : inputReader_(inputReader), mesh_(mesh), elements_(), utils_(), loadVector_(2 * mesh.getNumAllNodes(), 1) {
+    : inputReader_(inputReader), mesh_(mesh), utils_(), loadVector_(2 * mesh.getNumAllNodes(), 1) {
     // Initialize Utils based on inputReader
     utils_ = inputReader.getDesiredOutput() == "all" ? Utils(true) : Utils(false);
 

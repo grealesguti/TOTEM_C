@@ -3,7 +3,6 @@
 
 // Local
 #include "InputReader.hpp"
-#include "Elements.hpp"
 #include "Mesh.hpp"
 #include "Utils.hpp"
 #include "utils/data.hpp"
@@ -35,7 +34,6 @@ private:
     const InputReader& inputReader_;
     Mesh mesh_;
     Utils utils_;
-    Elements elements_; // Add a member variable of type Elements
 
     std::string meshFileName_;
     std::vector<double> initialdofs_;

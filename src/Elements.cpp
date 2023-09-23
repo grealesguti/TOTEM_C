@@ -2,22 +2,18 @@
 
 #include "Elements.hpp"
 
-// Constructor
-Elements::Elements() {}
 
-// Destructor
-Elements::~Elements() {}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // TRI 3 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to evaluate shape functions for a linear triangular element with 3 nodes
-arma::vec Elements::EvaluateLinearTriangularShapeFunctions(const double xi, const double eta) {
+arma::vec EvaluateLinearTriangularShapeFunctions(const double xi, const double eta) {
     // Shape functions for a linear triangular element
     return { xi, eta, 1.0 - xi - eta};
 }
 
 // Function to calculate shape function derivatives for a linear triangular element with 3 nodes
-arma::mat Elements::CalculateLinearTriangularShapeFunctionDerivatives() {
+arma::mat CalculateLinearTriangularShapeFunctionDerivatives() {
     arma::mat shapeFunctionDerivatives;
 
     // Ensure the shapeFunctionDerivatives matrix is of the correct size (3 nodes x 2 derivatives)
@@ -41,7 +37,7 @@ arma::mat Elements::CalculateLinearTriangularShapeFunctionDerivatives() {
 // QUAD 4 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate shape functions for a linear quadrilateral element with 4 nodes
-arma::mat Elements::EvaluateLinearQuadrilateralShapeFunctions(double xi, double eta) {
+arma::mat EvaluateLinearQuadrilateralShapeFunctions(double xi, double eta) {
     // Define the shape functions as a 4x1 matrix
     arma::mat shapeFunctions(4, 1, arma::fill::zeros);
 
@@ -55,7 +51,7 @@ arma::mat Elements::EvaluateLinearQuadrilateralShapeFunctions(double xi, double 
 }
 
 // Evaluate derivatives of shape functions for a linear quadrilateral element with 4 nodes
-arma::mat Elements::EvaluateLinearQuadrilateralShapeFunctionDerivatives(const double xi, const double eta) {
+arma::mat EvaluateLinearQuadrilateralShapeFunctionDerivatives(const double xi, const double eta) {
     arma::mat shapeFunctionDerivatives;
 
     // Ensure the shapeFunctionDerivatives matrix is of the correct size (4 nodes x 2 derivatives)
@@ -80,7 +76,7 @@ arma::mat Elements::EvaluateLinearQuadrilateralShapeFunctionDerivatives(const do
 // QUAD 8 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate shape functions for a quadratic quadrilateral element with 8 nodes
-arma::vec Elements::EvaluateQuadraticQuadrilateralShapeFunctions(const double xi, const double eta) {
+arma::vec EvaluateQuadraticQuadrilateralShapeFunctions(const double xi, const double eta) {
     // Define the shape functions for a quadratic quadrilateral element
     const double xi1 = -1.0;
     const double xi2 = 1.0;
@@ -99,7 +95,7 @@ arma::vec Elements::EvaluateQuadraticQuadrilateralShapeFunctions(const double xi
 }
 
 // Function to calculate derivatives of shape functions for a quadratic quadrilateral element with 8 nodes
-arma::mat Elements::CalculateQuadraticQuadrilateralShapeFunctionDerivatives(const double xi, const double eta) {
+arma::mat CalculateQuadraticQuadrilateralShapeFunctionDerivatives(const double xi, const double eta) {
     arma::mat shapeFunctionDerivatives;
 
     // Ensure the shapeFunctionDerivatives matrix is of the correct size (8 nodes x 2 derivatives)
@@ -135,12 +131,12 @@ arma::mat Elements::CalculateQuadraticQuadrilateralShapeFunctionDerivatives(cons
 // TETRA 4 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to evaluate shape functions for a linear tetrahedral element with 4 nodes
-arma::vec Elements::EvaluateLinearTetrahedraShapeFunctions(const double xi, const double eta, const double zeta) {
+arma::vec EvaluateLinearTetrahedraShapeFunctions(const double xi, const double eta, const double zeta) {
     // Shape functions for a linear tetrahedral element
     return {xi, eta, zeta, 1.0 - xi - eta - zeta};
 }
 // Function to calculate shape function derivatives for a linear tetrahedral element with 4 nodes
-arma::mat Elements::CalculateLinearTetrahedraShapeFunctionDerivatives() {
+arma::mat CalculateLinearTetrahedraShapeFunctionDerivatives() {
     arma::mat shapeFunctionDerivatives;
 
     // Ensure the shapeFunctionDerivatives matrix is of the correct size (4 nodes x 3 derivatives)
@@ -170,7 +166,7 @@ arma::mat Elements::CalculateLinearTetrahedraShapeFunctionDerivatives() {
 // HEXA 8 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate shape functions for a linear hexahedral element with 8 nodes
-arma::vec Elements::EvaluateHexahedralLinearShapeFunctions(const double xi, const double eta, const double zeta) {
+arma::vec EvaluateHexahedralLinearShapeFunctions(const double xi, const double eta, const double zeta) {
     // Define the shape functions for a linear hexahedral element
     return {
         0.125 * (1 - xi) * (1 - eta) * (1 - zeta),
@@ -185,7 +181,7 @@ arma::vec Elements::EvaluateHexahedralLinearShapeFunctions(const double xi, cons
 }
 
 // Function to calculate derivatives of shape functions for a linear hexahedral element with 8 nodes
-arma::mat Elements::CalculateHexahedralLinearShapeFunctionDerivatives(const double xi, const double eta, const double zeta) {
+arma::mat CalculateHexahedralLinearShapeFunctionDerivatives(const double xi, const double eta, const double zeta) {
     arma::mat shapeFunctionDerivatives;
 
     // Ensure the shapeFunctionDerivatives matrix is of the correct size (8 nodes x 3 derivatives)
@@ -231,7 +227,7 @@ arma::mat Elements::CalculateHexahedralLinearShapeFunctionDerivatives(const doub
 // HEXA 20 nodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to calculate shape functions for a hexahedral serendipity element with 20 nodes
-arma::vec Elements::CalculateHexahedralSerendipityShapeFunctions(const double xi1, const double xi2, const double xi3) {
+arma::vec CalculateHexahedralSerendipityShapeFunctions(const double xi1, const double xi2, const double xi3) {
     // Define the shape functions for a hexahedral serendipity element
     return {
         (1. - xi2) * (1. - xi3) * (1. - xi1) * (-xi2 - xi3 - xi1 - 2) / 8,
@@ -262,7 +258,7 @@ arma::vec Elements::CalculateHexahedralSerendipityShapeFunctions(const double xi
 }
 
 // Function to calculate derivatives of shape functions for a hexahedral serendipity element with 20 nodes
-arma::mat Elements::CalculateHexahedralSerendipityShapeFunctionDerivatives(const double xi1, const double xi2, const double xi3) {
+arma::mat CalculateHexahedralSerendipityShapeFunctionDerivatives(const double xi1, const double xi2, const double xi3) {
     // The shapeFunctionDerivatives matrix size is 20 nodes x 3 derivatives
     arma::mat shapeFunctionDerivatives;
     shapeFunctionDerivatives.set_size(3, 20); // Transposed matrix

@@ -2,7 +2,7 @@
 using namespace arma;
 
 Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
-    : inputReader_(inputReader), mesh_(mesh), elements_(), bcinit_(bcinit), utils_() {
+    : inputReader_(inputReader), mesh_(mesh), bcinit_(bcinit), utils_() {
     // Get the number of nodes from the mesh
     int numNodes = mesh_.getNumAllNodes();
 
