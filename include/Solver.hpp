@@ -31,14 +31,14 @@ public:
     
     // SOLVER FUNCTIONS
     // Function to perform assembly and return R_b and KJ_b
-    void Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double> R_reduced);
+    void Assembly(EigenSparseMatrix KsubMatrix, Vector<double> R_reduced);
     void reduceSystem(const Eigen::SparseMatrix<double>& K, Eigen::SparseMatrix<double>& reducedK);
     void solveSparseSystem(
         const Eigen::SparseMatrix<double>& KsubMatrix,
         const std::vector<double>& R_reduced,
         Eigen::VectorXd& solution);
     double runNewtonRaphson(); // Return both the solution and final residual
-    std::vector<double> getAllSolDofs() const {return soldofs_;};
+    inline const Vector<double> getAllSolDofs() const {return soldofs_;};
     double getAllSolDof(int i) const {return soldofs_[i];};
     double runArcLengthSolver();
     double runModifiedNewtonRaphsonSolver(bool applyLoadIncrements);
@@ -64,7 +64,7 @@ private:
     std::vector<double> soldofs_;
     arma::mat loadVector_;
     std::vector<int> freedofidxs_;
-    Utils::IntegrationResult thermoelectricityintegration(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag);
+    Utils::IntegrationResult thermoelectricityintegration(const Armadillo<arma::mat>& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag);
     std::function<Utils::IntegrationResult(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag)> thermoelectricityintegrationFunction_;
 
 };

@@ -4,6 +4,7 @@
 #include "BCInit.hpp"
 #include "Utils.hpp"
 #include "Solver.hpp"
+#include "utils/data.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -44,20 +45,20 @@ int main(int argc, char* argv[]) {
     filename = filename.substr(0, filename.length() - 4);    
 
     Mesh mesh(reader);
-    utils.writeDataToFile(mesh.getAllElementMaterials(),"Outputs/mesh_ElementMaterialIndex.txt",false);
-    utils.writeDataToFile(mesh.GetFreedofsIdx(),"Outputs/mesh_GetFreedofsIdx.txt",false);
+    mesh.getAllElementMaterials().writeDataToFile("Outputs/mesh_ElementMaterialIndex.txt",false);
+    mesh.GetFreedofsIdx().writeDataToFile("Outputs/mesh_GetFreedofsIdx.txt",false);
 
     BCInit BC(reader,mesh);
     //std::cout<<"Desired Output:"<<std::endl;
     //std::cout<<reader.getDesiredOutput()<<std::endl;
-    utils.writeDataToFile(BC.getAllInitialDof(),"Outputs/Out_DegreesOfFreedom.txt",false);
+    BC.getAllInitialDof().writeDataToFile("Outputs/Out_DegreesOfFreedom.txt",false);
     std::vector<int> freedofidxs_ = mesh.GetFreedofsIdx();
 
     // Initialization of Solver variablesç
     int numFreeDofs = freedofidxs_.size(); // Assuming freedofidx_ is a private member variable
     Eigen::SparseMatrix<double> reducedK(numFreeDofs, numFreeDofs);
-    std::vector<double> reducedR(numFreeDofs, 0.0); // Initialize with size and value 0.0
-    Eigen::VectorXd solution;    solution.resize(numFreeDofs);    solution.setZero();    // Assembly
+    Vector<double> reducedR({numFreeDofs, 0.0}); // Initialize with size and value 0.0
+    EigenVectorXd solution;    solution.resize(numFreeDofs);    solution.setZero();    // Assembly
     //std::shared_ptr<Eigen::SparseMatrix<double>> reducedK = std::make_shared<Eigen::SparseMatrix<double>>();
     //std::shared_ptr<std::vector<double>> reducedR = std::make_shared<std::vector<double>>();
 
@@ -67,20 +68,20 @@ int main(int argc, char* argv[]) {
     std::cout<<"Assembly finished:"<<std::endl;
 
     //solver.solveSparseSystem(system);
-    //utils.writeDataToFile(solution,"Outputs/main_solution.txt",false);
+    //solution.writeDataToFile("Outputs/main_solution.txt",false);
     //std::cout<<"System solved"<<std::endl;
     //Solver::SparseSystem system2 = solver.Assembly();
     //std::cout<<"Assembly finished:"<<std::endl;
-    //Eigen::VectorXd solution2 = solver.solveSparseSystem(system);
-    //utils.writeDataToFile(solution,"Outputs/main_solution.txt",false);
+    //EigenVectorXd solution2 = solver.solveSparseSystem(system);
+    //solution2.writeDataToFile("Outputs/main_solution.txt",false);
     //std::cout<<"System solved"<<std::endl;
     //solver.runNewtonRaphson();
-    //utils.writeDataToFile(solver.getAllSolDofs(),"Outputs/main_NRsolution.txt",false);
+    //solver.getAllSolDofs().writeDataToFile("Outputs/main_NRsolution.txt",false);
 
     if (reader.getDesiredOutput()=="all"){
         std::cout << "OUTPUT:: ALL" << std::endl;
-        utils.writeDataToFile(mesh.getAllCoordinates(),"Outputs/Out_CoordVector.txt",false);
-        //utils.writeDataToFile(BC.getloadVector(),"Outputs/Out_LoadVector.txt",false);
+        mesh.getAllCoordinates().writeDataToFile("Outputs/Out_CoordVector.txt",false);
+        //BC.getloadVector().writeDataToFile("Outputs/Out_LoadVector.txt",false);
         PostProcessing psp(reader,mesh);
         psp.WriteUnstructuredMeshToVTK();
     }else if (reader.getDesiredOutput()=="mesh"){

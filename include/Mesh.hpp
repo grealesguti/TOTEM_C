@@ -42,7 +42,7 @@ public:
         }
     }
     // Function to retrieve the freedofsidx_ vector
-    const std::vector<int>& GetFreedofsIdx() const {
+    inline const Vector<int> GetFreedofsIdx() const {
         return freedofsidx_;
     }
     std::vector<int> printElementTypesInPhysicalGroupByName(std::string desiredGroupName);
@@ -55,12 +55,12 @@ public:
     int getNumAllNodes() const {        return numallnodes;    }
     const std::vector<std::size_t> getElementTags() const {        return elementTags;    }
     const std::vector<std::size_t> getNodeTags() const {        return nodeTags;    }
-    const std::vector<double>& getCoordinates() const {        return coord;    }
+    const std::vector<double> getCoordinates() const {        return coord;    }
     const double getCoordi(int i) const {        return coord[i];    }
     const int getelementNodeTagi(int i) const {        return elementNodeTags[i];    }
     const int getNodeTagi(int i) const {        return nodeTags[i];    }
     const int getElementMaterial(int i) const {        return element_materials[i];    }
-    std::vector<int> getAllElementMaterials() const {        return element_materials;    }
+    inline const Vector<int> getAllElementMaterials() const {        return element_materials;    }
 
     arma::mat getCoordinates(const std::vector<int>& nodeTags);
     int getElementInfo(int elementTag, Vector<int>& nodeTags_el);
@@ -70,7 +70,7 @@ public:
     std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
     getElementsAndNodeTagsForPhysicalGroup(const std::string& desiredGroupName);
     // Function to return coordinates
-    const std::vector<double>& getAllCoordinates() const {
+    inline const Vector<double> getAllCoordinates() const {
         return coord;
     }
     std::pair<int, int> getNumNodesForElement(int elementTag);

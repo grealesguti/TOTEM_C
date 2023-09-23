@@ -13,14 +13,14 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
     freedofidxs_ = mesh_.GetFreedofsIdx();
 
     // Initialize the thermoelectricityintegrationFunction_ using the assignment operator
-    thermoelectricityintegrationFunction_ = [&](const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag) -> Utils::IntegrationResult {
+    thermoelectricityintegrationFunction_ = [&](const Armadillo<arma::mat>& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag) -> Utils::IntegrationResult {
         return thermoelectricityintegration(natcoords, coords, dofs,elementTag);
     };
     std::cout << "### SOLVER Initialized." << std::endl;
 
 }
 
-    void Solver::Assembly(Eigen::SparseMatrix<double> KsubMatrix, std::vector<double> R_reduced) {
+    void Solver::Assembly(EigenSparseMatrix KsubMatrix, Vector<double> R_reduced) {
     std::cout << "### START ASSEMBLY." << std::endl;
     int dof_per_node;
     if(inputReader_.getPhysics()=="thermoelectricity"){
@@ -134,7 +134,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                     Full_Ra.writeDataToFile("Outputs/KTintegration_elRaFinal.txt",true);
                 }
     // Create a vector to store Eigen triplets
-    std::vector<Eigen::Triplet<double>> triplets;
+    EigenDoubleTripletVector triplets;
     triplets.reserve(num_dofs_per_element * num_dofs_per_element * num_of_elements); // Reserve space to avoid reallocation
 
     // Iterate over the 2x2 matrices and add their entries to the Triplets vector
@@ -157,7 +157,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
         }
 
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(triplets,"Outputs/KTintegration_triplets.txt",true);
+                    triplets.writeDataToFile("Outputs/KTintegration_triplets.txt",true);
                 }
  // std::cout << "-triplets made." << std::endl;
 
@@ -181,8 +181,8 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 
     //std::cout << " -R Submatrix retrieved." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(KsubMatrix,"Outputs/KTintegration_reducedK.txt",true);
-                    utils_.writeDataToFile(R_reduced,"Outputs/KTintegration_reducedRa.txt",true);
+                    KsubMatrix.writeDataToFile("Outputs/KTintegration_reducedK.txt",true);
+                    R_reduced.writeDataToFile("Outputs/KTintegration_reducedRa.txt",true);
                 }
     std::cout << " assembly_ return." << std::endl;
     return;
@@ -192,7 +192,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 /////////////////////////////////////////////////////////////////////////////
 
 
-Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag){
+Utils::IntegrationResult Solver::thermoelectricityintegration(const Armadillo<arma::mat>& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag){
         Utils::IntegrationResult result; // Create a struct to hold KV and R
 
     std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(elementTag);
@@ -234,7 +234,7 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
         JM.writeDataToFile("Outputs/KTJM.txt",true);
         shapeFunctions.writeDataToFile("Outputs/KTshapeFunctions.txt",true);
         shapeFunctionDerivatives.writeDataToFile("Outputs/KTshapeFunctionDerivatives.txt",true);
-        utils_.writeDataToFile(natcoords,"Outputs/KTnatcoords.txt",true);
+        natcoords.writeDataToFile("Outputs/KTnatcoords.txt",true);
         coords.writeDataToFile("Outputs/KTcoords.txt",true);
         dofs.writeDataToFile("Outputs/KTdofs.txt",true);
 

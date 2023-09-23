@@ -52,6 +52,10 @@ template class Data<arma::umat>;
 template class Data<std::vector<double>>;
 template class Data<std::vector<int>>;
 
+template class Data<std::vector<Eigen::Triplet<double>>>;
+template class Data<Eigen::SparseMatrix<double>>;
+template class Data<Eigen::VectorXd>;
+
 //////////////////////////////////////////////////////////////////////////////////
 // ------------------------------------------------------------
 // ============================================================
@@ -87,6 +91,11 @@ template class Armadillo<arma::umat>;
 // ============================================================
 
 template <class T>
+Vector<T>::Vector(const std::vector<T>& data)
+    : std::vector<T>(data)
+{}
+
+template <class T>
 bool Vector<T>::save(std::ofstream& file) const {
     for (const auto& item : *this) {
         file << item << " ";
@@ -101,6 +110,10 @@ template class Vector<int>;
 // ------------------------------------------------------------
 // ============================================================
 
+EigenDoubleTripletVector::EigenDoubleTripletVector(const std::vector<Eigen::Triplet<double>>& data)
+    : std::vector<Eigen::Triplet<double>>(data)
+{}
+
 bool EigenDoubleTripletVector::save(std::ofstream& file) const {
     // For std::vector<Eigen::Triplet<double>> (sparse matrix in triplet format)
     for (const auto& triplet : *this) {
@@ -112,6 +125,10 @@ bool EigenDoubleTripletVector::save(std::ofstream& file) const {
 
 // ------------------------------------------------------------
 // ============================================================
+
+EigenSparseMatrix::EigenSparseMatrix(const Eigen::SparseMatrix<double>& data)
+    : Eigen::SparseMatrix<double>(data)
+{}
 
 bool EigenSparseMatrix::save(std::ofstream& file) const {
     // For Eigen sparse matrix (you may need to adjust this based on the actual Eigen sparse matrix type you are using)
@@ -129,6 +146,9 @@ bool EigenSparseMatrix::save(std::ofstream& file) const {
 // ------------------------------------------------------------
 // ============================================================
 
+EigenVectorXd::EigenVectorXd(const Eigen::VectorXd& data)
+    : Eigen::VectorXd(data)
+{}
 bool EigenVectorXd::save(std::ofstream& file) const {
     // For Eigen::VectorXd
     for (int i = 0; i < this->size(); ++i) {

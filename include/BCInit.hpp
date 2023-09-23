@@ -23,9 +23,9 @@ public:
     void boundaryConditions();
     void createLoadVector();
     const double getInitialDof(int i) const {return initialdofs_[i];}
-    std::vector<double> getAllInitialDof() const {return initialdofs_;}
+    inline const Vector<double> getAllInitialDof() const {return initialdofs_;}
 
-    arma::mat getloadVector() const {return loadVector_;}
+    inline const Armadillo<arma::mat> getloadVector() const {return loadVector_;}
 
     // Integrators
     arma::mat CteSurfBC(const arma::mat&, const Armadillo<arma::mat>& coords, double heatvalue, int element);
@@ -33,7 +33,7 @@ public:
 
 private:
     const InputReader& inputReader_;
-    Mesh& mesh_;
+    Mesh mesh_;
     Utils utils_;
     Elements elements_; // Add a member variable of type Elements
 

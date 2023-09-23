@@ -33,9 +33,6 @@ public:
         std::function<IntegrationResult(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag)> func
     );
     arma::mat TransformCoordinates(const arma::mat& cooro);
-        // Function to write an Armadillo matrix or vector to a file
-    template<typename T>
-    static bool writeDataToFile(const T& data, const std::string& filename, bool append = false); // Added 'bool append' parameter
     // Function to delete all files in a given folder path
     void deleteFilesInFolder(const std::string& folderPath);
     static arma::mat calculate_T3(const arma::mat& nodes);
