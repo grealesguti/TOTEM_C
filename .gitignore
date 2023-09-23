@@ -1,7 +1,6 @@
 *.exe
 *.vtk
 *.o
-/src/BCInit.o
-/src/Elements.o
-src/*.o
+bin
+Outputs
 input.txt
