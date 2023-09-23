@@ -61,7 +61,7 @@ public:
     std::vector<int> getAllElementMaterials() const {        return element_materials;    }
 
     arma::mat getCoordinates(const std::vector<int>& nodeTags);
-    int getElementInfo(int elementTag, std::vector<int> & nodeTags_el);
+    int getElementInfo(int elementTag, Vector<int>& nodeTags_el);
     void applyElementsMaterials();
     // Declaration for getMaterialPropertyForElement function
     double getMaterialPropertyForElement(std::size_t elementIndex, const std::string& propertyName) const;
@@ -84,7 +84,7 @@ public:
      * @param[out] shapeFunctionDerivatives     .
      */
     void selectShapeFunctionsAndDerivatives(const int etype, const double xi, const double eta, const double zeta,
-                                            Armadillo<arma::vec>& shapeFunctions, Armadillo<arma::mat>& shapeFunctionDerivatives);
+                                            ArmadilloVector<double>& shapeFunctions, ArmadilloMatrix<double>& shapeFunctionDerivatives);
 
 private:
     Elements elements_;

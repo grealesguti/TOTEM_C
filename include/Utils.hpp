@@ -11,23 +11,26 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
 
+#include "utils/data.hpp"
+
 class Utils {
 public:
     Utils(bool someFlag = false); // Added 'bool someFlag' parameter with a default value of 'false'
     struct IntegrationResult {
-        arma::mat KT;
-        arma::mat R;
+        ArmadilloMatrix<double> KT;
+        ArmadilloMatrix<double> R;
     };
     void getGaussWeightsAndPoints(int order, arma::mat& weights, arma::mat& gaussPoints);
-    void gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue, std::function<arma::mat(const arma::mat&,const arma::mat&, double, int)> func, arma::mat& result);
+    void gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue,
+                            std::function<arma::mat(const arma::mat&, const ArmadilloMatrix<double>&, const double, const int)> func, arma::mat& result);
     // Function to perform Gaussian integration
     IntegrationResult gaussIntegrationK(
         int dimension,
         int order,
         int elementTag,
         Mesh mesh,
-        arma::vec element_dof_values,
-        std::function<IntegrationResult(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag)> func
+        ArmadilloVector<double> element_dof_values,
+        std::function<IntegrationResult(const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag)> func
     );
     arma::mat TransformCoordinates(const arma::mat& cooro);
         // Function to write an Armadillo matrix or vector to a file

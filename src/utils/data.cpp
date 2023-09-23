@@ -98,9 +98,73 @@ bool Armadillo<T>::save(std::ofstream& file) const {
 }
 
 template class Armadillo<arma::mat>;
-template class Armadillo<arma::vec>;
 template class Armadillo<arma::uvec>;
 template class Armadillo<arma::umat>;
+
+// ------------------------------------------------------------
+
+template <class T>
+ArmadilloVector<T>::ArmadilloVector(const arma::Col<T>& data)
+    : Armadillo<arma::Col<T>>(data)
+{}
+
+template <class T>
+const T ArmadilloVector<T>::operator()(const std::size_t index) const {
+    return this->data_(index);
+}
+
+template <class T>
+T & ArmadilloVector<T>::operator()(const std::size_t index) {
+    return this->data_(index);
+}
+
+template <class T>
+const std::size_t ArmadilloVector<T>::size() const {
+    return this->data_.size();
+}
+
+template class ArmadilloVector<double>;
+template class ArmadilloVector<arma::uword>;
+
+// ------------------------------------------------------------
+
+template <class T>
+ArmadilloMatrix<T>::ArmadilloMatrix(const arma::Mat<T>& data)
+    : Armadillo<arma::Mat<T>>(data)
+{}
+
+template <class T>
+const T ArmadilloMatrix<T>::operator()(const std::size_t index) const {
+    return this->data_(index);
+}
+
+template <class T>
+T & ArmadilloMatrix<T>::operator()(const std::size_t index) {
+    return this->data_(index);
+}
+
+template <class T>
+const T ArmadilloMatrix<T>::operator()(const std::size_t r, const std::size_t c) const {
+    return this->data_(r, c);
+}
+
+template <class T>
+T & ArmadilloMatrix<T>::operator()(const std::size_t r, const std::size_t c) {
+    return this->data_(r, c);
+}
+
+template <class T>
+const arma::subview_col<T> ArmadilloMatrix<T>::col(const std::size_t c) const {
+    return this->data_.col(c);
+}
+
+template <class T>
+arma::subview_col<T> ArmadilloMatrix<T>::col(const std::size_t c) {
+    return this->data_.col(c);
+}
+
+template class ArmadilloMatrix<double>;
+template class ArmadilloMatrix<arma::uword>;
 
 // ------------------------------------------------------------
 // ============================================================

@@ -13,7 +13,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
     freedofidxs_ = mesh_.GetFreedofsIdx();
 
     // Initialize the thermoelectricityintegrationFunction_ using the assignment operator
-    thermoelectricityintegrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag) -> Utils::IntegrationResult {
+    thermoelectricityintegrationFunction_ = [&](const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag) -> Utils::IntegrationResult {
         return thermoelectricityintegration(natcoords, coords, dofs,elementTag);
     };
     std::cout << "### SOLVER Initialized." << std::endl;
@@ -38,19 +38,19 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
     //std::cout<<"element type: "<< etype<<"nodes per element "<<nodes_per_element<<" num_dofs_per_element "<<num_dofs_per_element<<std::endl;
 
     // Initialize larger matrices for KJ and Ra
-    arma::mat larger_KJ(num_dofs_per_element*num_dofs_per_element, num_of_elements, arma::fill::zeros);
+    ArmadilloMatrix<double> larger_KJ({num_dofs_per_element*num_dofs_per_element, num_of_elements, arma::fill::zeros});
     arma::mat larger_Ra(num_dofs_per_element, num_of_elements, arma::fill::zeros);
-    arma::umat larger_element_dofs(num_dofs_per_element, num_of_elements, arma::fill::zeros);
+    ArmadilloMatrix<arma::uword> larger_element_dofs({num_dofs_per_element, num_of_elements, arma::fill::zeros});
 
     // Full Residual vector
     int totalmeshnodes = mesh_.getNumAllNodes();
-    arma::vec Full_Ra = arma::vec(totalmeshnodes*dof_per_node, arma::fill::zeros);
+    ArmadilloVector<double> Full_Ra({totalmeshnodes*dof_per_node, arma::fill::zeros});
 
     // Temporary matrices for the current element
     arma::mat element_Ra = arma::zeros<arma::mat>(num_dofs_per_element, 1);
     arma::mat element_KJ = arma::zeros<arma::mat>(num_dofs_per_element, num_dofs_per_element);
     arma::uvec element_dofs = arma::uvec(num_dofs_per_element, arma::fill::zeros);
-    arma::vec element_dof_values = arma::vec(num_dofs_per_element, arma::fill::zeros);
+    ArmadilloVector<double> element_dof_values({num_dofs_per_element, arma::fill::zeros});
     arma::uvec element_zeros = arma::uvec(num_dofs_per_element, arma::fill::zeros);
 
         //#pragma omp parallel num_threads(num_threads)
@@ -63,7 +63,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                 std::size_t elementTag = elementTags[elementIndex];
 
                 // Rest of your loop code remains the same
-                std::vector<int> nodeTags_el;
+                Vector<int> nodeTags_el;
                 int etype = mesh_.getElementInfo(elementTag, nodeTags_el);
               //  std::cout<<"element type: "<< etype<<"nodes per element "<<nodes_per_element<<std::endl;
                 std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(elementTags[elementIndex]);
@@ -73,38 +73,40 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                // std::cout<<"element type: "<< etype1<<"nodes per element "<<nodes_per_element<<" num_dofs_per_element "<<num_dofs_per_element<<std::endl;
 
                 int cc = 0;
-                for (int nodeTag : nodeTags_el) {
+                for (int nodeTag : nodeTags_el.getData()) {
                     element_dofs[cc] = nodeTag * dof_per_node;
                     element_dofs[cc + nodes_per_element] = nodeTag * dof_per_node + 1;
                     // FIXME (Parche temporal) Find out why some values are out of range and use methods like insert, at, an so on
                     if (nodeTag*dof_per_node+1<soldofs_.size()) {
-                        element_dof_values[cc] = soldofs_[ nodeTag * dof_per_node];
-                        element_dof_values[cc + nodes_per_element]= soldofs_[ nodeTag * dof_per_node + 1];
+                        element_dof_values(cc) = soldofs_[ nodeTag * dof_per_node];
+                        element_dof_values(cc + nodes_per_element)= soldofs_[ nodeTag * dof_per_node + 1];
                     }
                     cc += 1;
                 }
                // std::cout<<"-Desired Output:"<<std::endl;
                 //std::cout<<inputReader_.getDesiredOutput()<<std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(nodeTags_el,"Outputs/KTnodeTags_el.txt",true);
-                    utils_.writeDataToFile(element_dofs,"Outputs/KTelement_dofs.txt",true);
-                    utils_.writeDataToFile(element_dof_values,"Outputs/KTelement_dof_values.txt",true);
+                    nodeTags_el.writeDataToFile("Outputs/KTnodeTags_el.txt",true);
+
+                    Armadillo<arma::uvec> lElementDofs(element_dofs);
+                    lElementDofs.writeDataToFile("Outputs/KTelement_dofs.txt",true);
+                    element_dof_values.writeDataToFile("Outputs/KTelement_dof_values.txt",true);
                 }
                 // if physics == 
                 std::cout << "-element integration "<< elementTag << std::endl;
                 Utils::IntegrationResult elementresult = utils_.gaussIntegrationK(3, 3, elementTag, mesh_, element_dof_values, thermoelectricityintegrationFunction_);
                 //std::cout << "-element "<< elementTag<< " integrated." << std::endl;
 
-                arma::vec vector_KJ = arma::vectorise(elementresult.KT);
-                arma::vec vector_Ra = elementresult.R;
+                ArmadilloVector<double> vector_KJ(arma::vectorise(elementresult.KT.getData()));
+                ArmadilloVector<double> vector_Ra(elementresult.R.getData());
                // std::cout << "-vector format." << std::endl;
 
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(elementresult.KT,"Outputs/KTintegration_elKTnovector.txt",true);
-                    utils_.writeDataToFile(vector_KJ,"Outputs/KTintegration_elKT.txt",true);
-                    utils_.writeDataToFile(elementresult.R,"Outputs/KTintegration_elR.txt",true);
+                    elementresult.KT.writeDataToFile("Outputs/KTintegration_elKTnovector.txt",true);
+                    vector_KJ.writeDataToFile("Outputs/KTintegration_elKT.txt",true);
+                    elementresult.R.writeDataToFile("Outputs/KTintegration_elR.txt",true);
                 }
-                larger_KJ.col(elementIndex) = vector_KJ;
+                larger_KJ.col(elementIndex) = vector_KJ.getData();
                 //std::cout << "-filled KJlarger." << std::endl;
 
                 // Use atomic addition for updating Full_Ra
@@ -112,12 +114,12 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
                 for (int i = 0; i < element_dofs.n_elem; i++) {
                     // FIXME (Parche temporal) Find out why some values are out of range and use methods like insert, at, an so on
                     if (element_dofs[i]<Full_Ra.size())
-                        Full_Ra[element_dofs[i]] += vector_Ra[i];
+                        Full_Ra(element_dofs[i]) += vector_Ra(i);
                 }
                 //std::cout << "-filled Ra." << std::endl;
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(larger_KJ,"Outputs/KTintegration_elKTlarger.txt",true);
-                    utils_.writeDataToFile(Full_Ra,"Outputs/KTintegration_elRa.txt",true);
+                    larger_KJ.writeDataToFile("Outputs/KTintegration_elKTlarger.txt",true);
+                    Full_Ra.writeDataToFile("Outputs/KTintegration_elRa.txt",true);
                 }
                 larger_element_dofs.col(elementIndex) = element_dofs;
                // std::cout << "-filled dofs." << std::endl;
@@ -127,9 +129,9 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 
         //}
                 if (inputReader_.getDesiredOutput()=="all"){
-                    utils_.writeDataToFile(larger_element_dofs,"Outputs/KTintegration_larger_element_dofs.txt",true);
-                    utils_.writeDataToFile(larger_KJ,"Outputs/KTintegration_elKTlargerFinal.txt",true);
-                    utils_.writeDataToFile(Full_Ra,"Outputs/KTintegration_elRaFinal.txt",true);
+                    larger_element_dofs.writeDataToFile("Outputs/KTintegration_larger_element_dofs.txt",true);
+                    larger_KJ.writeDataToFile("Outputs/KTintegration_elKTlargerFinal.txt",true);
+                    Full_Ra.writeDataToFile("Outputs/KTintegration_elRaFinal.txt",true);
                 }
     // Create a vector to store Eigen triplets
     std::vector<Eigen::Triplet<double>> triplets;
@@ -172,8 +174,8 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
     // Resize the vector to the desired size and initialize with zeros
     R_reduced.resize(freedofidxs_.size(), 0.0);
     for (int i = 0; i < freedofidxs_.size(); i++) {
-                if (abs(Full_Ra[freedofidxs_[i]])>1e-20){
-                    R_reduced[i] = Full_Ra[freedofidxs_[i]];
+                if (abs(Full_Ra(freedofidxs_[i]))>1e-20){
+                    R_reduced[i] = Full_Ra(freedofidxs_[i]);
                 }
     }           
 
@@ -190,7 +192,7 @@ Solver::Solver(const InputReader& inputReader, Mesh& mesh, BCInit& bcinit)
 /////////////////////////////////////////////////////////////////////////////
 
 
-Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const arma::mat& coords, const arma::vec& dofs, const int elementTag){
+Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag){
         Utils::IntegrationResult result; // Create a struct to hold KV and R
 
     std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(elementTag);
@@ -199,8 +201,8 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout<< "nodes per element "<<nodes_per_element<<std::endl;
     // Define variables
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
-    Armadillo<arma::vec> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
-    Armadillo<arma::mat> shapeFunctionDerivatives({nodes_per_element, 3}); // Shape function derivatives
+    ArmadilloVector<double> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
+    ArmadilloMatrix<double> shapeFunctionDerivatives({nodes_per_element, 3}); // Shape function derivatives
     // Define the integration result matrices
     arma::mat RT(nodes_per_element, 1, arma::fill::zeros);
     arma::mat RV(nodes_per_element, 1, arma::fill::zeros);
@@ -226,20 +228,20 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
 
-    arma::mat JM = shapeFunctionDerivatives.getData().t() * coords.t(); // Fixed the loop indexing
+    ArmadilloMatrix<double> JM (shapeFunctionDerivatives.getData().t() * coords.getData().t()); // Fixed the loop indexing
                 //std::cout << "JM." << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
-        utils_.writeDataToFile(JM,"Outputs/KTJM.txt",true);
-        shapeFunctions.writeToFile("Outputs/KTshapeFunctions.txt",true);
-        shapeFunctionDerivatives.writeToFile("Outputs/KTshapeFunctionDerivatives.txt",true);
+        JM.writeDataToFile("Outputs/KTJM.txt",true);
+        shapeFunctions.writeDataToFile("Outputs/KTshapeFunctions.txt",true);
+        shapeFunctionDerivatives.writeDataToFile("Outputs/KTshapeFunctionDerivatives.txt",true);
         utils_.writeDataToFile(natcoords,"Outputs/KTnatcoords.txt",true);
-        utils_.writeDataToFile(coords,"Outputs/KTcoords.txt",true);
-        utils_.writeDataToFile(dofs,"Outputs/KTdofs.txt",true);
+        coords.writeDataToFile("Outputs/KTcoords.txt",true);
+        dofs.writeDataToFile("Outputs/KTdofs.txt",true);
 
     }
     //std::cout << "Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
-    double detJ = arma::det(JM);
+    double detJ = arma::det(JM.getData());
     //std::cout <<"detJ"<< detJ << std::endl;
 
     // Extract material properties
@@ -272,51 +274,51 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     // Calculate je and qe
     const auto shapeFunctionDerivativesData = shapeFunctionDerivatives.getData();
     const auto shapeFunctionDerivativesData_t = shapeFunctionDerivativesData.t();
-    arma::mat je = -De * shapeFunctionDerivativesData_t * Vee - Da * De * shapeFunctionDerivativesData_t * Tee;
+    ArmadilloMatrix<double> je(-De * shapeFunctionDerivativesData_t * Vee - Da * De * shapeFunctionDerivativesData_t * Tee);
     //std::cout << " je." << std::endl;
-    arma::mat qe = Da * Th * je - Dk * shapeFunctionDerivativesData_t * Tee;
+    ArmadilloMatrix<double> qe(Da * Th * je.getData() - Dk * shapeFunctionDerivativesData_t * Tee);
     //std::cout << "qe ." << std::endl;
 
     // Perform the necessary calculations here to compute djdt, djdv, dqdt, dqdv
-    arma::mat djdt = -Da * De * shapeFunctionDerivativesData_t
+    ArmadilloMatrix<double> djdt(-Da * De * shapeFunctionDerivativesData_t
                     - Dda * De * shapeFunctionDerivativesData_t * Tee * shapeFunctions.getData().t()
-                    - Dde * (shapeFunctionDerivativesData_t * Vee + Da * shapeFunctionDerivativesData_t * Tee) * shapeFunctions.getData().t();
+                    - Dde * (shapeFunctionDerivativesData_t * Vee + Da * shapeFunctionDerivativesData_t * Tee) * shapeFunctions.getData().t());
     //std::cout << "djdt" << std::endl;
 
-    arma::mat djdv = -De * shapeFunctionDerivativesData_t;
+    ArmadilloMatrix<double> djdv(-De * shapeFunctionDerivativesData_t);
    // std::cout << "djdv" << std::endl;
 
-    arma::mat dqdt = Da * Th * djdt + Da * je * shapeFunctions.getData().t()
+    ArmadilloMatrix<double> dqdt(Da * Th * djdt.getData() + Da * je.getData() * shapeFunctions.getData().t()
                     - Dk * shapeFunctionDerivativesData_t
-                    + Dda * Th * je * shapeFunctions.getData().t()
-                    - Ddk * shapeFunctionDerivativesData_t * Tee * shapeFunctions.getData().t();
+                    + Dda * Th * je.getData() * shapeFunctions.getData().t()
+                    - Ddk * shapeFunctionDerivativesData_t * Tee * shapeFunctions.getData().t());
     //std::cout << "dqdt" << std::endl;
 
-    arma::mat dqdv = -Da * De * Th * shapeFunctionDerivativesData_t;
+    ArmadilloMatrix<double> dqdv(-Da * De * Th * shapeFunctionDerivativesData_t);
     //std::cout << "dqdv" << std::endl;
     std::cout << "thermoel_matrix addition" << std::endl;
 
     // Perform the integration for RT, RV, K11, K12, K21, K22
-    RT += (-shapeFunctionDerivativesData * qe + shapeFunctions.getData() * je.t() * shapeFunctionDerivativesData_t * Vee);
+    RT += (-shapeFunctionDerivativesData * qe.getData() + shapeFunctions.getData() * je.getData().t() * shapeFunctionDerivativesData_t * Vee);
     //std::cout << "RT" << std::endl;
-    RV += (-shapeFunctionDerivativesData * je);
+    RV += (-shapeFunctionDerivativesData * je.getData());
     //std::cout << "RV" << std::endl;
-    K11 +=(shapeFunctionDerivativesData * dqdt - shapeFunctions.getData() * (djdt.t() * shapeFunctionDerivativesData_t * Vee).t());
+    K11 +=(shapeFunctionDerivativesData * dqdt.getData() - shapeFunctions.getData() * (djdt.getData().t() * shapeFunctionDerivativesData_t * Vee).t());
     //std::cout << "K11" << std::endl;
-    K12 +=(shapeFunctionDerivativesData * dqdv - shapeFunctions.getData() * (djdv.t() * shapeFunctionDerivativesData_t * Vee).t() - shapeFunctions.getData() * (je.t() * shapeFunctionDerivativesData_t));
+    K12 +=(shapeFunctionDerivativesData * dqdv.getData() - shapeFunctions.getData() * (djdv.getData().t() * shapeFunctionDerivativesData_t * Vee).t() - shapeFunctions.getData() * (je.getData().t() * shapeFunctionDerivativesData_t));
     //std::cout << "K12" << std::endl;
-    K21 +=(shapeFunctionDerivativesData * djdt);
+    K21 +=(shapeFunctionDerivativesData * djdt.getData());
     //std::cout << "K21" << std::endl;
-    K22 +=(shapeFunctionDerivativesData * djdv);
+    K22 +=(shapeFunctionDerivativesData * djdv.getData());
     //std::cout << "matrixes" << std::endl;
 
     if (inputReader_.getDesiredOutput()=="all"){
-        utils_.writeDataToFile(je,"Outputs/KTqe.txt",true);
-        utils_.writeDataToFile(qe,"Outputs/KTje.txt",true);
-        utils_.writeDataToFile(djdt,"Outputs/KTdjdt.txt",true);
-        utils_.writeDataToFile(djdv,"Outputs/KTdjdv.txt",true);
-        utils_.writeDataToFile(dqdt,"Outputs/KTdqdt.txt",true);
-        utils_.writeDataToFile(dqdv,"Outputs/KTdqdv.txt",true);
+        je.writeDataToFile("Outputs/KTqe.txt",true);
+        qe.writeDataToFile("Outputs/KTje.txt",true);
+        djdt.writeDataToFile("Outputs/KTdjdt.txt",true);
+        djdv.writeDataToFile("Outputs/KTdjdv.txt",true);
+        dqdt.writeDataToFile("Outputs/KTdqdt.txt",true);
+        dqdv.writeDataToFile("Outputs/KTdqdv.txt",true);
         utils_.writeDataToFile(RT,"Outputs/KTRT.txt",true);
         utils_.writeDataToFile(RV,"Outputs/KTRV.txt",true);
         utils_.writeDataToFile(K11,"Outputs/KTK11.txt",true);
@@ -347,13 +349,13 @@ Utils::IntegrationResult Solver::thermoelectricityintegration(const arma::mat& n
     R.submat(RT.n_rows, 0, numRowsR - 1, 0) = RV;
     //std::cout << "matrixes larger filled" << std::endl;
 
-    result.R=R*detJ;
-    result.KT=KV*detJ;
+    result.R.setData(R*detJ);
+    result.KT.setData(KV*detJ);
     //std::cout << "integrand calculated " << std::endl;
 
     if (inputReader_.getDesiredOutput()=="all"){
-        utils_.writeDataToFile(result.KT,"Outputs/KTel_rstKT.txt",true);
-        utils_.writeDataToFile(result.R,"Outputs/KTel_rstR.txt",true);
+        result.KT.writeDataToFile("Outputs/KTel_rstKT.txt",true);
+        result.R.writeDataToFile("Outputs/KTel_rstR.txt",true);
         utils_.writeDataToFile(KV,"Outputs/KTel_KT.txt",true);
         utils_.writeDataToFile(R,"Outputs/KTel_R.txt",true);
     }

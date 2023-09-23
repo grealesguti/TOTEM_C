@@ -13,7 +13,7 @@ BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
     initialdofs_.resize(2 * mesh.getNumAllNodes());
 
     // Initialize integrationFunction_ using a lambda function
-    integrationFunction_ = [&](const arma::mat& natcoords, const arma::mat& coords, double value, int element) {
+    integrationFunction_ = [&](const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const double value, const int element) {
         return CteSurfBC(natcoords, coords, value, element);
     };
 
@@ -137,15 +137,15 @@ void BCInit::boundaryConditions() {
 }
 
 
-mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int element) {
+mat BCInit::CteSurfBC(const mat& natcoords, const ArmadilloMatrix<double>& coords, double value, int element) {
     // Define variables
     std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(element);
     int nodes_per_element = nodesperelement_etype.first; // Number of nodes
     int etype = nodesperelement_etype.second; // Element type
-    Armadillo<arma::vec> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
-    Armadillo<arma::mat> shapeFunctionDerivatives({nodes_per_element, 2}); // Shape function derivatives
+    ArmadilloVector<double> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
+    ArmadilloMatrix<double> shapeFunctionDerivatives({nodes_per_element, 2}); // Shape function derivatives
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
-    mat F_q(nodes_per_element, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
+    // mat F_q(nodes_per_element, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
     //std::cout << "Extract natural coordinates. " << std::endl;
     double xi=0, eta=0;
     if (natcoords.n_rows >= 2 && natcoords.n_cols >= 1) {
@@ -163,24 +163,26 @@ mat BCInit::CteSurfBC(const mat& natcoords, const mat& coords, double value, int
 
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
-    mat JM = shapeFunctionDerivatives.getData().t() * coords.t();
+    ArmadilloMatrix<double> JM(shapeFunctionDerivatives.getData().t() * coords.getData().t());
     //"Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
-    double detJ = arma::det(JM);
+    const double detJ = arma::det(JM.getData());
     //std::cout << "Calculate integrand. " << std::endl;
     // Calculate F_q (heat flow) using your equations
-    F_q = detJ * (shapeFunctions.getData() * value);
+    ArmadilloMatrix<double> F_q(detJ * (shapeFunctions.getData() * value));
     //std::cout << "integrand calculated " << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
-        shapeFunctions.writeToFile("Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
-        shapeFunctionDerivatives.writeToFile("Outputs/HeatIntegrationShapeFunctionsDerivatives_"+std::to_string(element)+".txt",true);
-        utils_.writeDataToFile(JM,"Outputs/HeatIntegrationJM_"+std::to_string(element)+".txt",true);
-        utils_.writeDataToFile(coords,"Outputs/HeatIntegrationElcoords_"+std::to_string(element)+".txt",true);
-        utils_.writeDataToFile(natcoords,"Outputs/HeatIntegrationNatcoords_"+std::to_string(element)+".txt",true);
-        utils_.writeDataToFile(F_q,"Outputs/HeatIntegrationFq_"+std::to_string(element)+".txt",true);
+        shapeFunctions.writeDataToFile("Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
+        shapeFunctionDerivatives.writeDataToFile("Outputs/HeatIntegrationShapeFunctionsDerivatives_"+std::to_string(element)+".txt",true);
+        JM.writeDataToFile("Outputs/HeatIntegrationJM_"+std::to_string(element)+".txt",true);
+        F_q.writeDataToFile("Outputs/HeatIntegrationFq_"+std::to_string(element)+".txt",true);
+
+        coords.writeDataToFile("Outputs/HeatIntegrationElcoords_"+std::to_string(element)+".txt",true);
+        const ArmadilloMatrix<double> lNatCoords(natcoords);
+        lNatCoords.writeDataToFile("Outputs/HeatIntegrationNatcoords_"+std::to_string(element)+".txt",true);
     }
     // Return the heat flow as a 4x1 Armadillo matrix
-    return F_q;
+    return F_q.getData();
 }
 
 /////////////////////////////////////////////////////////////////////////

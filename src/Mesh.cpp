@@ -612,7 +612,7 @@ double Mesh::getMaterialPropertyForElement(std::size_t elementIndex, const std::
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    int Mesh::getElementInfo(int elementTag, std::vector<int> & nodeTags_el) {
+    int Mesh::getElementInfo(int elementTag, Vector<int>& nodeTags_el) {
         int dim, entityTag, elementType;
         std::vector<std::size_t> nodeTags_size_t;
         gmsh::model::mesh::getElement(elementTag, elementType, nodeTags_size_t, dim, entityTag);
@@ -624,7 +624,7 @@ double Mesh::getMaterialPropertyForElement(std::size_t elementIndex, const std::
 ////////////////////////////////////////////////////////////////////////////////////////////////
 std::pair<int, int> Mesh::getNumNodesForElement(int elementTag) {
     int dim, entityTag;
-    std::vector<int> nodeTags_el;
+    Vector<int> nodeTags_el;
     int etype = getElementInfo(elementTag, nodeTags_el);
     std::string shape;
 
@@ -774,7 +774,7 @@ std::pair<int, int> Mesh::getNumNodesForElement(int elementTag) {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Mesh::selectShapeFunctionsAndDerivatives(const int etype, const double xi, const double eta, const double zeta,
-                                              Armadillo<arma::vec>& shapeFunctions, Armadillo<arma::mat>& shapeFunctionDerivatives) {
+                                              ArmadilloVector<double>& shapeFunctions, ArmadilloMatrix<double>& shapeFunctionDerivatives) {
     // Clear the output vectors
 
     switch (etype) {

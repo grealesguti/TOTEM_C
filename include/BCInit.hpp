@@ -21,7 +21,7 @@ public:
     arma::mat getloadVector() const {return loadVector_;}
 
     // Integrators
-    arma::mat CteSurfBC(const arma::mat&,const arma::mat& coords, double heatvalue, int element);
+    arma::mat CteSurfBC(const arma::mat&, const ArmadilloMatrix<double>& coords, double heatvalue, int element);
 
 
 private:
@@ -33,7 +33,7 @@ private:
     std::string meshFileName_;
     std::vector<double> initialdofs_;
     arma::mat loadVector_;
-    std::function<arma::mat(const arma::mat&, const arma::mat&, double, int)> integrationFunction_;
+    std::function<arma::mat(const arma::mat&, const ArmadilloMatrix<double>&, const double, const int)> integrationFunction_;
 
 };
 

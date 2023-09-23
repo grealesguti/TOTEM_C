@@ -103,6 +103,81 @@ class Armadillo : public Data<T>
 };
 
 template <class T>
+class ArmadilloVector : public Armadillo<arma::Col<T>>
+{
+    public:
+        // ------------------------------------------------------------
+        // Constructors and destructor
+
+        ArmadilloVector() = default;
+        ArmadilloVector(const arma::Col<T>& data);
+
+        // ------------------------------------------------------------
+        // Operators
+
+        /**
+         * @brief Access the element stored at index.
+         *
+         * @param[in] index
+         *
+         * @throw exception if the requested element is out of bounds.
+        */
+        const T operator()(const std::size_t index) const;
+        T & operator()(const std::size_t index);
+
+        // ------------------------------------------------------------
+        // Methods
+
+        const std::size_t size() const;
+};
+
+template <class T>
+class ArmadilloMatrix : public Armadillo<arma::Mat<T>>
+{
+    public:
+        // ------------------------------------------------------------
+        // Constructors and destructor
+
+        ArmadilloMatrix() = default;
+        ArmadilloMatrix(const arma::Mat<T>& data);
+
+        // ------------------------------------------------------------
+        // Operators
+
+        /**
+         * @brief Access the element/object stored at index i under the assumption of a flat layout, with column-major ordering of data (ie. column by column).
+         *
+         * @param[in] index
+         *
+         * @throw exception if the requested element is out of bounds.
+        */
+        const T operator()(const std::size_t index) const;
+        T & operator()(const std::size_t index);
+
+        /**
+         * @brief Access the element/object stored at row @p r and column @p c.
+         *
+         * @param[in] r Row.
+         * @param[in] c Column.
+         *
+         * @throw exception if the requested element is out of bounds.
+        */
+        const T operator()(const std::size_t r, const std::size_t c) const;
+        T & operator()(const std::size_t r, const std::size_t c);
+
+
+        /**
+         * @brief Creation of subview (column vector).
+         *
+         * @param[in] c Column.
+         *
+         * @throw exception if the requested element is out of bounds.
+        */
+        const arma::subview_col<T> col(const std::size_t c) const;
+        arma::subview_col<T> col(const std::size_t c);
+};
+
+template <class T>
 class Vector : public Data<std::vector<T>>
 {
     public:
