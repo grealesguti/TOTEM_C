@@ -37,13 +37,9 @@ class Data
         // Constructors and destructor
 
         Data() = default;
-        Data(const T& data);
 
         // ------------------------------------------------------------
         // Methods
-
-        const T getData() const;
-        void setData(const T& data);
 
         /**
          * @brief Function to write an Armadillo matrix or vector to a file
@@ -60,23 +56,17 @@ class Data
         // Protected methods
 
         virtual bool save(std::ofstream& file) const = 0;
-
-        // ------------------------------------------------------------
-        // Protected attributes
-
-        T data_; //!< Data
 };
 
 // ============================================================
 
-class ArmadilloSpMat : public Data<arma::sp_mat>
+class ArmadilloSpMat : public Data<arma::sp_mat>, public arma::sp_mat
 {
     public:
         // ------------------------------------------------------------
         // Constructors and destructor
 
         ArmadilloSpMat() = default;
-        ArmadilloSpMat(const arma::sp_mat& data);
 
     private:
         // ------------------------------------------------------------
@@ -86,14 +76,44 @@ class ArmadilloSpMat : public Data<arma::sp_mat>
 };
 
 template <class T>
-class Armadillo : public Data<T>
+class Armadillo : public Data<T>, public T
 {
     public:
         // ------------------------------------------------------------
         // Constructors and destructor
 
         Armadillo() = default;
-        Armadillo(const T& data);
+        Armadillo(const T& d);
+
+        // ------------------------------------------------------------
+        // Operators
+
+        template <class D>
+        inline T operator*(const D& rhs) const
+        {
+            return static_cast<const T>(*this) * rhs;
+            // return *this * rhs;
+        }
+
+        inline Armadillo<T> operator-() const {
+            -(static_cast<const T>(*this));
+
+            return *this;
+        }
+
+        Armadillo<T>& operator=(const Armadillo<T>& other) = default;
+        inline Armadillo<T>& operator=(const T& arma)
+        {
+            T::operator=(arma);
+            return *this;
+        }
+
+        // ------------------------------------------------------------
+        // Methods
+
+        inline const T get() const {
+            return *this;
+        }
 
     private:
         // ------------------------------------------------------------
@@ -103,82 +123,19 @@ class Armadillo : public Data<T>
 };
 
 template <class T>
-class ArmadilloVector : public Armadillo<arma::Col<T>>
+inline T operator*(const double rhs, const Armadillo<T>& lhs)
 {
-    public:
-        // ------------------------------------------------------------
-        // Constructors and destructor
-
-        ArmadilloVector() = default;
-        ArmadilloVector(const arma::Col<T>& data);
-
-        // ------------------------------------------------------------
-        // Operators
-
-        /**
-         * @brief Access the element stored at index.
-         *
-         * @param[in] index
-         *
-         * @throw exception if the requested element is out of bounds.
-        */
-        const T operator()(const std::size_t index) const;
-        T & operator()(const std::size_t index);
-
-        // ------------------------------------------------------------
-        // Methods
-
-        const std::size_t size() const;
-};
+    return rhs * static_cast<const T>(lhs);
+}
 
 template <class T>
-class ArmadilloMatrix : public Armadillo<arma::Mat<T>>
+inline T operator*(const T& rhs, const Armadillo<T>& lhs)
 {
-    public:
-        // ------------------------------------------------------------
-        // Constructors and destructor
-
-        ArmadilloMatrix() = default;
-        ArmadilloMatrix(const arma::Mat<T>& data);
-
-        // ------------------------------------------------------------
-        // Operators
-
-        /**
-         * @brief Access the element/object stored at index i under the assumption of a flat layout, with column-major ordering of data (ie. column by column).
-         *
-         * @param[in] index
-         *
-         * @throw exception if the requested element is out of bounds.
-        */
-        const T operator()(const std::size_t index) const;
-        T & operator()(const std::size_t index);
-
-        /**
-         * @brief Access the element/object stored at row @p r and column @p c.
-         *
-         * @param[in] r Row.
-         * @param[in] c Column.
-         *
-         * @throw exception if the requested element is out of bounds.
-        */
-        const T operator()(const std::size_t r, const std::size_t c) const;
-        T & operator()(const std::size_t r, const std::size_t c);
-
-
-        /**
-         * @brief Creation of subview (column vector).
-         *
-         * @param[in] c Column.
-         *
-         * @throw exception if the requested element is out of bounds.
-        */
-        const arma::subview_col<T> col(const std::size_t c) const;
-        arma::subview_col<T> col(const std::size_t c);
-};
+    return rhs * static_cast<const T>(lhs);
+}
 
 template <class T>
-class Vector : public Data<std::vector<T>>
+class Vector : public Data<std::vector<T>>, public std::vector<T>
 {
     public:
         // ------------------------------------------------------------
@@ -187,13 +144,6 @@ class Vector : public Data<std::vector<T>>
         Vector() = default;
         Vector(const std::vector<T>& data);
 
-        // ------------------------------------------------------------
-        // Methods
-
-        const std::size_t size() const;
-
-        void assign(std::vector<std::size_t>::iterator first, std::vector<std::size_t>::iterator last);
-
     private:
         // ------------------------------------------------------------
         // Private methods
@@ -201,7 +151,7 @@ class Vector : public Data<std::vector<T>>
         bool save(std::ofstream& file) const;
 };
 
-class EigenDoubleTripletVector : public Data<std::vector<Eigen::Triplet<double>>>
+class EigenDoubleTripletVector : public Data<std::vector<Eigen::Triplet<double>>>, public std::vector<Eigen::Triplet<double>>
 {
     public:
         // ------------------------------------------------------------
@@ -218,7 +168,7 @@ class EigenDoubleTripletVector : public Data<std::vector<Eigen::Triplet<double>>
 };
 
 
-class EigenSparseMatrix : public Data<Eigen::SparseMatrix<double>>
+class EigenSparseMatrix : public Data<Eigen::SparseMatrix<double>>, public Eigen::SparseMatrix<double>
 {
     public:
         // ------------------------------------------------------------
@@ -234,7 +184,7 @@ class EigenSparseMatrix : public Data<Eigen::SparseMatrix<double>>
         bool save(std::ofstream& file) const;
 };
 
-class EigenVectorXd : public Data<Eigen::VectorXd>
+class EigenVectorXd : public Data<Eigen::VectorXd>, public Eigen::VectorXd
 {
     public:
         // ------------------------------------------------------------

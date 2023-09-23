@@ -8,11 +8,6 @@
 // ------------------------------------------------------------
 
 template <class T>
-Data<T>::Data(const T& data)
-    : data_(data)
-{}
-
-template <class T>
 bool Data<T>::writeDataToFile(const std::string& filename, const bool append) const {
     // Open the file for writing
     std::ofstream file;
@@ -49,16 +44,6 @@ bool Data<T>::writeDataToFile(const std::string& filename, const bool append) co
     return saved;
 }
 
-template <class T>
-const T Data<T>::getData() const {
-    return data_;
-}
-
-template <class T>
-void Data<T>::setData(const T& data) {
-    data_ = data;
-}
-
 template class Data<arma::mat>;
 template class Data<arma::vec>;
 template class Data<arma::uvec>;
@@ -71,10 +56,6 @@ template class Data<std::vector<int>>;
 // ------------------------------------------------------------
 // ============================================================
 
-ArmadilloSpMat::ArmadilloSpMat(const arma::sp_mat& data)
-    : Data<arma::sp_mat>(data)
-{}
-
 bool ArmadilloSpMat::save(std::ofstream& file) const {
     std::cerr << "Error: Writing sparse matrices in ASCII format is not supported." << std::endl;
 
@@ -85,112 +66,33 @@ bool ArmadilloSpMat::save(std::ofstream& file) const {
 // ============================================================
 
 template <class T>
-Armadillo<T>::Armadillo(const T& data)
-    : Data<T>(data)
-{}
+Armadillo<T>::Armadillo(const T& arma)
+    : T(arma)
+{};
 
 template <class T>
 bool Armadillo<T>::save(std::ofstream& file) const {
     // For Armadillo dense data (vector, matrix, or uvec)
-    this->data_.save(file, arma::raw_ascii);
+    T::save(file, arma::raw_ascii);
 
     return true;
 }
 
-template class Armadillo<arma::mat>;
+template class Armadillo<arma::vec>;
 template class Armadillo<arma::uvec>;
+template class Armadillo<arma::mat>;
 template class Armadillo<arma::umat>;
-
-// ------------------------------------------------------------
-
-template <class T>
-ArmadilloVector<T>::ArmadilloVector(const arma::Col<T>& data)
-    : Armadillo<arma::Col<T>>(data)
-{}
-
-template <class T>
-const T ArmadilloVector<T>::operator()(const std::size_t index) const {
-    return this->data_(index);
-}
-
-template <class T>
-T & ArmadilloVector<T>::operator()(const std::size_t index) {
-    return this->data_(index);
-}
-
-template <class T>
-const std::size_t ArmadilloVector<T>::size() const {
-    return this->data_.size();
-}
-
-template class ArmadilloVector<double>;
-template class ArmadilloVector<arma::uword>;
-
-// ------------------------------------------------------------
-
-template <class T>
-ArmadilloMatrix<T>::ArmadilloMatrix(const arma::Mat<T>& data)
-    : Armadillo<arma::Mat<T>>(data)
-{}
-
-template <class T>
-const T ArmadilloMatrix<T>::operator()(const std::size_t index) const {
-    return this->data_(index);
-}
-
-template <class T>
-T & ArmadilloMatrix<T>::operator()(const std::size_t index) {
-    return this->data_(index);
-}
-
-template <class T>
-const T ArmadilloMatrix<T>::operator()(const std::size_t r, const std::size_t c) const {
-    return this->data_(r, c);
-}
-
-template <class T>
-T & ArmadilloMatrix<T>::operator()(const std::size_t r, const std::size_t c) {
-    return this->data_(r, c);
-}
-
-template <class T>
-const arma::subview_col<T> ArmadilloMatrix<T>::col(const std::size_t c) const {
-    return this->data_.col(c);
-}
-
-template <class T>
-arma::subview_col<T> ArmadilloMatrix<T>::col(const std::size_t c) {
-    return this->data_.col(c);
-}
-
-template class ArmadilloMatrix<double>;
-template class ArmadilloMatrix<arma::uword>;
 
 // ------------------------------------------------------------
 // ============================================================
 
 template <class T>
-Vector<T>::Vector(const std::vector<T>& data)
-    : Data<std::vector<T>>(data)
-{}
-
-template <class T>
 bool Vector<T>::save(std::ofstream& file) const {
-    for (const auto& item : this->data_) {
+    for (const auto& item : *this) {
         file << item << " ";
     }
 
     return true;
-}
-
-template <class T>
-const std::size_t Vector<T>::size() const {
-    return this->data_.size();
-}
-
-template <class T>
-void Vector<T>::assign(std::vector<std::size_t>::iterator first, std::vector<std::size_t>::iterator last){
-    this->data_.assign(first, last);
 }
 
 template class Vector<double>;
@@ -199,13 +101,9 @@ template class Vector<int>;
 // ------------------------------------------------------------
 // ============================================================
 
-EigenDoubleTripletVector::EigenDoubleTripletVector(const std::vector<Eigen::Triplet<double>>& data)
-    : Data<std::vector<Eigen::Triplet<double>>>(data)
-{}
-
 bool EigenDoubleTripletVector::save(std::ofstream& file) const {
     // For std::vector<Eigen::Triplet<double>> (sparse matrix in triplet format)
-    for (const auto& triplet : data_) {
+    for (const auto& triplet : *this) {
         file << triplet.row() << " " << triplet.col() << " " << triplet.value() << std::endl;
     }
 
@@ -215,16 +113,12 @@ bool EigenDoubleTripletVector::save(std::ofstream& file) const {
 // ------------------------------------------------------------
 // ============================================================
 
-EigenSparseMatrix::EigenSparseMatrix(const Eigen::SparseMatrix<double>& data)
-    : Data<Eigen::SparseMatrix<double>>(data)
-{}
-
 bool EigenSparseMatrix::save(std::ofstream& file) const {
     // For Eigen sparse matrix (you may need to adjust this based on the actual Eigen sparse matrix type you are using)
     // Write Eigen sparse matrix to file in a custom format
-    for (int i = 0; i < data_.rows(); ++i) {
-        for (int j = 0; j < data_.cols(); ++j) {
-            file << data_.coeff(i, j) << " ";
+    for (int i = 0; i < this->rows(); ++i) {
+        for (int j = 0; j < this->cols(); ++j) {
+            file << this->coeff(i, j) << " ";
         }
         file << std::endl;
     }
@@ -235,14 +129,10 @@ bool EigenSparseMatrix::save(std::ofstream& file) const {
 // ------------------------------------------------------------
 // ============================================================
 
-EigenVectorXd::EigenVectorXd(const Eigen::VectorXd& data)
-    : Data<Eigen::VectorXd>(data)
-{}
-
 bool EigenVectorXd::save(std::ofstream& file) const {
     // For Eigen::VectorXd
-    for (int i = 0; i < data_.size(); ++i) {
-        file << data_(i) << " ";
+    for (int i = 0; i < this->size(); ++i) {
+        file << (*this)(i) << " ";
     }
 
     return true;

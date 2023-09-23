@@ -17,20 +17,20 @@ class Utils {
 public:
     Utils(bool someFlag = false); // Added 'bool someFlag' parameter with a default value of 'false'
     struct IntegrationResult {
-        ArmadilloMatrix<double> KT;
-        ArmadilloMatrix<double> R;
+        Armadillo<arma::mat> KT;
+        Armadillo<arma::mat> R;
     };
     void getGaussWeightsAndPoints(int order, arma::mat& weights, arma::mat& gaussPoints);
     void gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue,
-                            std::function<arma::mat(const arma::mat&, const ArmadilloMatrix<double>&, const double, const int)> func, arma::mat& result);
+                            std::function<arma::mat(const arma::mat&, const Armadillo<arma::mat>&, const double, const int)> func, arma::mat& result);
     // Function to perform Gaussian integration
     IntegrationResult gaussIntegrationK(
         int dimension,
         int order,
         int elementTag,
         Mesh mesh,
-        ArmadilloVector<double> element_dof_values,
-        std::function<IntegrationResult(const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag)> func
+        Armadillo<arma::vec> element_dof_values,
+        std::function<IntegrationResult(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag)> func
     );
     arma::mat TransformCoordinates(const arma::mat& cooro);
         // Function to write an Armadillo matrix or vector to a file

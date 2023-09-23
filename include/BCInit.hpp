@@ -1,13 +1,20 @@
 #ifndef BCINIT_H
 #define BCINIT_H
 
+// Local
 #include "InputReader.hpp"
 #include "Elements.hpp"
+#include "Mesh.hpp"
 #include "Utils.hpp"
+#include "utils/data.hpp"
+
+// Armadillo
 #include <armadillo>
+
+// OpenMP
 #include <omp.h>
 
-#include "Mesh.hpp"
+// Gmsh
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
 
 class BCInit {
@@ -21,7 +28,7 @@ public:
     arma::mat getloadVector() const {return loadVector_;}
 
     // Integrators
-    arma::mat CteSurfBC(const arma::mat&, const ArmadilloMatrix<double>& coords, double heatvalue, int element);
+    arma::mat CteSurfBC(const arma::mat&, const Armadillo<arma::mat>& coords, double heatvalue, int element);
 
 
 private:
@@ -33,7 +40,7 @@ private:
     std::string meshFileName_;
     std::vector<double> initialdofs_;
     arma::mat loadVector_;
-    std::function<arma::mat(const arma::mat&, const ArmadilloMatrix<double>&, const double, const int)> integrationFunction_;
+    std::function<arma::mat(const arma::mat&, const Armadillo<arma::mat>&, const double, const int)> integrationFunction_;
 
 };
 

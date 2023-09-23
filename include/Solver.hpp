@@ -1,13 +1,21 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
+// Local
 #include "InputReader.hpp"
 #include "Elements.hpp"
 #include "Utils.hpp"
-#include <armadillo>
 #include "BCInit.hpp"
 #include "Mesh.hpp"
+#include "utils/data.hpp"
+
+// Armadillo
+#include <armadillo>
+
+// Gmsh
 #include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
+
+// Eigen
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
 
@@ -56,8 +64,8 @@ private:
     std::vector<double> soldofs_;
     arma::mat loadVector_;
     std::vector<int> freedofidxs_;
-    Utils::IntegrationResult thermoelectricityintegration(const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag);
-    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag)> thermoelectricityintegrationFunction_;
+    Utils::IntegrationResult thermoelectricityintegration(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag);
+    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag)> thermoelectricityintegrationFunction_;
 
 };
 

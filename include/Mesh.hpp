@@ -1,17 +1,19 @@
 #ifndef MESH_H
 #define MESH_H
 
-
+// Local
 #include "InputReader.hpp"
-#include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <armadillo>
 #include "Elements.hpp"
-
 #include "utils/data.hpp"
+
+// STL
+#include <vector>
+
+// Gmsh
+#include "gmsh.h" // Assuming you have a gmsh library for reading the mesh file
+
+// Armadillo
+#include <armadillo>
 
 
 class Mesh {
@@ -84,7 +86,7 @@ public:
      * @param[out] shapeFunctionDerivatives     .
      */
     void selectShapeFunctionsAndDerivatives(const int etype, const double xi, const double eta, const double zeta,
-                                            ArmadilloVector<double>& shapeFunctions, ArmadilloMatrix<double>& shapeFunctionDerivatives);
+                                            Armadillo<arma::vec>& shapeFunctions, Armadillo<arma::mat>& shapeFunctionDerivatives);
 
 private:
     Elements elements_;

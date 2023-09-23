@@ -1,6 +1,5 @@
+// Local
 #include "BCInit.hpp"
-
-#include "utils/data.hpp"
 
 using namespace arma;
 
@@ -13,7 +12,7 @@ BCInit::BCInit(const InputReader& inputReader, Mesh& mesh)
     initialdofs_.resize(2 * mesh.getNumAllNodes());
 
     // Initialize integrationFunction_ using a lambda function
-    integrationFunction_ = [&](const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const double value, const int element) {
+    integrationFunction_ = [&](const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const double value, const int element) {
         return CteSurfBC(natcoords, coords, value, element);
     };
 
@@ -137,13 +136,13 @@ void BCInit::boundaryConditions() {
 }
 
 
-mat BCInit::CteSurfBC(const mat& natcoords, const ArmadilloMatrix<double>& coords, double value, int element) {
+mat BCInit::CteSurfBC(const mat& natcoords, const Armadillo<arma::mat>& coords, double value, int element) {
     // Define variables
     std::pair<int, int> nodesperelement_etype = mesh_.getNumNodesForElement(element);
     int nodes_per_element = nodesperelement_etype.first; // Number of nodes
     int etype = nodesperelement_etype.second; // Element type
-    ArmadilloVector<double> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
-    ArmadilloMatrix<double> shapeFunctionDerivatives({nodes_per_element, 2}); // Shape function derivatives
+    Armadillo<arma::vec> shapeFunctions({nodes_per_element,1}); // Shape functions as a 4x1 vector
+    Armadillo<arma::mat> shapeFunctionDerivatives({nodes_per_element, 2}); // Shape function derivatives
     //std::cout << "Initialize shape functions and derivatives. " << std::endl;
     // mat F_q(nodes_per_element, 1, fill::zeros);         // Initialize F_q as a 3x1 zero matrix for heat flow
     //std::cout << "Extract natural coordinates. " << std::endl;
@@ -163,13 +162,13 @@ mat BCInit::CteSurfBC(const mat& natcoords, const ArmadilloMatrix<double>& coord
 
     //std::cout << "Calculate jacobian. " << std::endl;
     // Calculate Jacobian matrix JM
-    ArmadilloMatrix<double> JM(shapeFunctionDerivatives.getData().t() * coords.getData().t());
+    Armadillo<arma::mat> JM(shapeFunctionDerivatives.t() * coords.t());
     //"Calculate jacobian determinant. " << std::endl;
     // Calculate the determinant of the Jacobian
-    const double detJ = arma::det(JM.getData());
+    const double detJ = arma::det(JM);
     //std::cout << "Calculate integrand. " << std::endl;
     // Calculate F_q (heat flow) using your equations
-    ArmadilloMatrix<double> F_q(detJ * (shapeFunctions.getData() * value));
+    Armadillo<arma::mat> F_q(detJ * (shapeFunctions * value));
     //std::cout << "integrand calculated " << std::endl;
     if (inputReader_.getDesiredOutput()=="all"){
         shapeFunctions.writeDataToFile("Outputs/HeatIntegrationShapeFunctions_"+std::to_string(element)+".txt",true);
@@ -178,11 +177,11 @@ mat BCInit::CteSurfBC(const mat& natcoords, const ArmadilloMatrix<double>& coord
         F_q.writeDataToFile("Outputs/HeatIntegrationFq_"+std::to_string(element)+".txt",true);
 
         coords.writeDataToFile("Outputs/HeatIntegrationElcoords_"+std::to_string(element)+".txt",true);
-        const ArmadilloMatrix<double> lNatCoords(natcoords);
+        const Armadillo<arma::mat> lNatCoords(natcoords);
         lNatCoords.writeDataToFile("Outputs/HeatIntegrationNatcoords_"+std::to_string(element)+".txt",true);
     }
     // Return the heat flow as a 4x1 Armadillo matrix
-    return F_q.getData();
+    return F_q;
 }
 
 /////////////////////////////////////////////////////////////////////////

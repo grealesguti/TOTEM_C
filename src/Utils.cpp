@@ -129,7 +129,7 @@ arma::mat Utils::TransformCoordinates(const arma::mat& cooro) {
 
 
 void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh mesh, double bcvalue,
-                              std::function<mat(const mat& natcoords, const ArmadilloMatrix<double>& coords, const double value, const int element)> func, mat& result) {
+                              std::function<mat(const mat& natcoords, const Armadillo<arma::mat>& coords, const double value, const int element)> func, mat& result) {
 
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
@@ -146,23 +146,23 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
     mesh.getElementInfo(elementTag, nodeTags_el);
     // arma::mat coordinates_tr(3, nodeTags_el.size());
 
+    Armadillo<arma::mat> coordinates(mesh.getCoordinates(nodeTags_el));
 
-    ArmadilloMatrix<double> coordinates(mesh.getCoordinates(nodeTags_el.getData()));
-    arma::mat iT3= Utils::calculate_inverse_T3(coordinates.getData());
-    ArmadilloMatrix<double> coordinates_tr (iT3*coordinates.getData());
+    arma::mat iT3= Utils::calculate_inverse_T3(coordinates);
+    Armadillo<arma::mat> coordinates_tr(iT3*coordinates);
     // Create a new matrix to store the result without the last row
-    ArmadilloMatrix<double> coordinates_tr_XY;
+    Armadillo<arma::mat> coordinates_tr_XY;
     double tolerance = 1e-6; // Define your tolerance here
 
 
     // Iterate through the rows of coordinates_tr and copy rows that do not meet the tolerance condition
-    for (arma::uword i = 0; i < coordinates_tr.getData().n_rows; ++i) {
+    for (arma::uword i = 0; i < coordinates_tr.n_rows; ++i) {
         bool removeRow = true; // Assume we want to remove the row by default
-        double firstValue = coordinates_tr.getData()(i, 0); // Store the first value in the row
+        double firstValue = coordinates_tr(i, 0); // Store the first value in the row
 
         // Check if all values in the row are within the tolerance
-        for (arma::uword j = 1; j < coordinates_tr.getData().n_cols; ++j) {
-            if (std::abs(coordinates_tr.getData()(i, j) - firstValue) > tolerance) {
+        for (arma::uword j = 1; j < coordinates_tr.n_cols; ++j) {
+            if (std::abs(coordinates_tr(i, j) - firstValue) > tolerance) {
                 removeRow = false; // Row contains a different value outside the tolerance, so we keep it
                 break;
             }
@@ -170,15 +170,15 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
 
         if (!removeRow) {
             // Copy the row to coordinates_tr_XY
-            if (coordinates_tr_XY.getData().is_empty()) {
-                coordinates_tr_XY.setData(coordinates_tr.getData().row(i));
+            if (coordinates_tr_XY.is_empty()) {
+                coordinates_tr_XY = coordinates_tr.row(i);
             } else {
-                coordinates_tr_XY.setData(arma::join_vert(coordinates_tr_XY.getData(), coordinates_tr.getData().row(i)));
+                coordinates_tr_XY = arma::join_vert(static_cast<arma::mat&>(coordinates_tr_XY), coordinates_tr.row(i));
             }
         }
     }
 
-    if (coordinates_tr_XY.getData().is_empty()) {
+    if (coordinates_tr_XY.is_empty()) {
         // Handle the case when all rows were removed, resulting in an empty matrix.
         std::cout << "Warning: All rows removed. coordinates_tr_XY is empty." << std::endl;
         // You may want to print a warning message or take appropriate action.
@@ -193,9 +193,9 @@ void Utils::gaussIntegrationBC(int dimension, int order, int elementTag, Mesh me
         coordinates_tr.writeDataToFile("Outputs/BCGaussCoordsTr_"+std::to_string(elementTag)+".txt",true);
         coordinates_tr_XY.writeDataToFile("Outputs/BCGaussCoordsTrXY_"+std::to_string(elementTag)+".txt",true);
 
-        ArmadilloMatrix<double> lGaussPoints(gaussPoints);
+        Armadillo<arma::mat> lGaussPoints(gaussPoints);
         lGaussPoints.writeDataToFile("Outputs/BCGaussPoints_"+std::to_string(elementTag)+".txt",true);
-        ArmadilloMatrix<double> lWeights(weights);
+        Armadillo<arma::mat> lWeights(weights);
         lWeights.writeDataToFile("Outputs/BCGaussWeights_"+std::to_string(elementTag)+".txt",true);
     }
 
@@ -277,15 +277,15 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     int order,
     int elementTag,
     Mesh mesh,
-    ArmadilloVector<double> element_dof_values,
-    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const ArmadilloMatrix<double>& coords, const ArmadilloVector<double>& dofs, const int elementTag)> func
+    Armadillo<arma::vec> element_dof_values,
+    std::function<Utils::IntegrationResult(const arma::mat& natcoords, const Armadillo<arma::mat>& coords, const Armadillo<arma::vec>& dofs, const int elementTag)> func
 ) {
     Utils::IntegrationResult result; // Create a struct to hold KT and R
 
     if (dimension < 1 || order < 1) {
         std::cerr << "Invalid dimension or order for Gauss integration." << std::endl;
-        result.KT.setData(arma::zeros<arma::mat>(1, 1)); // Initialize KT to a 1x1 matrix with zero value.
-        result.R.setData(arma::zeros<arma::mat>(1, 1));  // Initialize R to a 1x1 matrix with zero value.
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
         return result;
     }
     std::pair<int, int> nodesperelement_etype = mesh.getNumNodesForElement(elementTag);
@@ -298,31 +298,31 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
     arma::mat gaussPoints;
     Vector<int> nodeTags_el;
     mesh.getElementInfo(elementTag, nodeTags_el);
-    const ArmadilloMatrix<double> coordinates(mesh.getCoordinates(nodeTags_el.getData()));
+    const Armadillo<arma::mat> coordinates(mesh.getCoordinates(nodeTags_el));
 
     // get current dofs from elementdofs index, this is the input!!!
     this->getGaussWeightsAndPoints(order, weights, gaussPoints);
 
     if (weights.is_empty() || gaussPoints.is_empty()) {
         std::cerr << "Invalid order for Gauss integration." << std::endl;
-        result.KT.setData(arma::zeros<arma::mat>(1, 1)); // Initialize KT to a 1x1 matrix with zero value.
-        result.R.setData(arma::zeros<arma::mat>(1, 1));  // Initialize R to a 1x1 matrix with zero value.
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
         return result;
     }
 
     if (weights.n_rows != gaussPoints.n_rows) {
         std::cerr << "Weights and Gauss points have mismatched dimensions." << std::endl;
-        result.KT.setData(arma::zeros<arma::mat>(1, 1)); // Initialize KT to a 1x1 matrix with zero value.
-        result.R.setData(arma::zeros<arma::mat>(1, 1));  // Initialize R to a 1x1 matrix with zero value.
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
         return result;
     }
     if(writeflag_==true){
         nodeTags_el.writeDataToFile("Outputs/KTNodeTags_"+std::to_string(elementTag)+".txt",true);
         coordinates.writeDataToFile("Outputs/KTGaussCoords_"+std::to_string(elementTag)+".txt",true);
 
-        ArmadilloMatrix<double> lGaussPoints(gaussPoints);
+        Armadillo<arma::mat> lGaussPoints(gaussPoints);
         lGaussPoints.writeDataToFile("Outputs/KTGaussPoints_"+std::to_string(elementTag)+".txt",true);
-        ArmadilloMatrix<double> lWeights(weights);
+        Armadillo<arma::mat> lWeights(weights);
         lWeights.writeDataToFile("Outputs/KTGaussWeights_"+std::to_string(elementTag)+".txt",true);
     }
     // Initialize result.KT and result.R to zero matrices of appropriate dimensions.
@@ -335,12 +335,12 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
         for (uword i = 0; i < weights.n_rows; ++i) {
             natcoords(0, 0) = gaussPoints(i, 0);
             Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag );
-            Re += localResult.R.getData() * weights(i, 0);
-            KTe += localResult.KT.getData() * weights(i, 0);
+            Re += localResult.R * weights(i, 0);
+            KTe += localResult.KT * weights(i, 0);
         }
 
-            result.KT.setData(KTe);
-            result.R.setData(Re);
+            result.KT = KTe;
+            result.R = Re;
 
     } else if (dimension == 2) {
         // 2D integration using a double loop.
@@ -353,13 +353,13 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
                 natcoords(0, 0) = gaussPoints(i, 0);
                 natcoords(1, 0) = gaussPoints(j, 0);
                 Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag);
-                R += localResult.R.getData() * weights(i, 0) * weights(j, 0);
-                KT += localResult.KT.getData() * weights(i, 0) * weights(j, 0);
+                R += localResult.R * weights(i, 0) * weights(j, 0);
+                KT += localResult.KT * weights(i, 0) * weights(j, 0);
             }
         }
 
-            result.KT.setData(KT);
-            result.R.setData(R);
+            result.KT = KT;
+            result.R = R;
 
     } else if (dimension == 3) {
         if (order == 14) {
@@ -380,19 +380,19 @@ Utils::IntegrationResult Utils::gaussIntegrationK(
                         natcoords(2, 0) = gaussPoints(k, 0);
                         Utils::IntegrationResult localResult = func(natcoords, coordinates,element_dof_values,elementTag);
                         std::cout << "utils_integrand addition." << std::endl;
-                        R += localResult.R.getData() * weights(i, 0) * weights(j, 0) * weights(k, 0);
-                        KT += localResult.KT.getData() * weights(i, 0) * weights(j, 0) * weights(k, 0);
+                        R += localResult.R * weights(i, 0) * weights(j, 0) * weights(k, 0);
+                        KT += localResult.KT * weights(i, 0) * weights(j, 0) * weights(k, 0);
                     }
                 }
             }
 
-            result.KT.setData(KT);
-            result.R.setData(R);
+            result.KT = KT;
+            result.R = R;
         }
     } else {
         std::cerr << "Invalid dimension for Gauss integration." << std::endl;
-        result.KT.setData(arma::zeros<arma::mat>(1, 1)); // Initialize KT to a 1x1 matrix with zero value.
-        result.R.setData(arma::zeros<arma::mat>(1, 1));  // Initialize R to a 1x1 matrix with zero value.
+        result.KT = arma::zeros<arma::mat>(1, 1); // Initialize KT to a 1x1 matrix with zero value.
+        result.R = arma::zeros<arma::mat>(1, 1);  // Initialize R to a 1x1 matrix with zero value.
     }
 
     return result; // Return the struct containing KT and R.
